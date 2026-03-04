@@ -1,0 +1,156 @@
+{
+  "Version": 1,
+  "WorkspaceRootPath": "C:\\Users\\Windows\\Documents\\C#\\High6\\",
+  "Documents": [
+    {
+      "AbsoluteMoniker": "D:0:0:{7C1D0C36-7E75-4C2D-947F-0047164714DA}|High6.csproj|c:\\users\\windows\\documents\\c#\\high6\\printer.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{7C1D0C36-7E75-4C2D-947F-0047164714DA}|High6.csproj|solutionrelative:printer.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{7C1D0C36-7E75-4C2D-947F-0047164714DA}|High6.csproj|c:\\users\\windows\\documents\\c#\\high6\\rawprinterhelper.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{7C1D0C36-7E75-4C2D-947F-0047164714DA}|High6.csproj|solutionrelative:rawprinterhelper.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{7C1D0C36-7E75-4C2D-947F-0047164714DA}|High6.csproj|c:\\users\\windows\\documents\\c#\\high6\\high6.csproj||{FA3CD31E-987B-443A-9B81-186104E8DAC1}|",
+      "RelativeMoniker": "D:0:0:{7C1D0C36-7E75-4C2D-947F-0047164714DA}|High6.csproj|solutionrelative:high6.csproj||{FA3CD31E-987B-443A-9B81-186104E8DAC1}|"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{7C1D0C36-7E75-4C2D-947F-0047164714DA}|High6.csproj|c:\\users\\windows\\documents\\c#\\high6\\printer.designer.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{7C1D0C36-7E75-4C2D-947F-0047164714DA}|High6.csproj|solutionrelative:printer.designer.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{7C1D0C36-7E75-4C2D-947F-0047164714DA}|High6.csproj|C:\\Users\\Windows\\Documents\\C#\\High6\\printersetup.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}|Form",
+      "RelativeMoniker": "D:0:0:{7C1D0C36-7E75-4C2D-947F-0047164714DA}|High6.csproj|solutionrelative:printersetup.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}|Form"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{7C1D0C36-7E75-4C2D-947F-0047164714DA}|High6.csproj|c:\\users\\windows\\documents\\c#\\high6\\printersetup.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{7C1D0C36-7E75-4C2D-947F-0047164714DA}|High6.csproj|solutionrelative:printersetup.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{7C1D0C36-7E75-4C2D-947F-0047164714DA}|High6.csproj|C:\\Users\\Windows\\Documents\\C#\\High6\\printer.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}|Form",
+      "RelativeMoniker": "D:0:0:{7C1D0C36-7E75-4C2D-947F-0047164714DA}|High6.csproj|solutionrelative:printer.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}|Form"
+    }
+  ],
+  "DocumentGroupContainers": [
+    {
+      "Orientation": 0,
+      "VerticalTabListWidth": 256,
+      "DocumentGroups": [
+        {
+          "DockedWidth": 200,
+          "SelectedChildIndex": 6,
+          "Children": [
+            {
+              "$type": "Bookmark",
+              "Name": "ST:0:0:{e506b91c-c606-466a-90a9-123d1d1e12b3}"
+            },
+            {
+              "$type": "Bookmark",
+              "Name": "ST:0:0:{eefa5220-e298-11d0-8f78-00a0c9110057}"
+            },
+            {
+              "$type": "Bookmark",
+              "Name": "ST:0:0:{3ae79031-e1bc-11d0-8f78-00a0c9110057}"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 5,
+              "Title": "PrinterSetup.cs",
+              "DocumentMoniker": "C:\\Users\\Windows\\Documents\\C#\\High6\\PrinterSetup.cs",
+              "RelativeDocumentMoniker": "PrinterSetup.cs",
+              "ToolTip": "C:\\Users\\Windows\\Documents\\C#\\High6\\PrinterSetup.cs",
+              "RelativeToolTip": "PrinterSetup.cs",
+              "ViewState": "AgIAAJoBAAAAAAAAAAAYwMoBAAABAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-02-25T07:31:52.853Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 2,
+              "Title": "High6.csproj",
+              "DocumentMoniker": "C:\\Users\\Windows\\Documents\\C#\\High6\\High6.csproj",
+              "RelativeDocumentMoniker": "High6.csproj",
+              "ToolTip": "C:\\Users\\Windows\\Documents\\C#\\High6\\High6.csproj",
+              "RelativeToolTip": "High6.csproj",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAABAAAAAKAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000758|",
+              "WhenOpened": "2026-02-25T06:14:55.779Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 1,
+              "Title": "RawPrinterHelper.cs",
+              "DocumentMoniker": "C:\\Users\\Windows\\Documents\\C#\\High6\\RawPrinterHelper.cs",
+              "RelativeDocumentMoniker": "RawPrinterHelper.cs",
+              "ToolTip": "C:\\Users\\Windows\\Documents\\C#\\High6\\RawPrinterHelper.cs",
+              "RelativeToolTip": "RawPrinterHelper.cs",
+              "ViewState": "AgIAAEsAAAAAAAAAAAAAAEwAAAABAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-02-25T06:15:02.71Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 0,
+              "Title": "Printer.cs",
+              "DocumentMoniker": "C:\\Users\\Windows\\Documents\\C#\\High6\\Printer.cs",
+              "RelativeDocumentMoniker": "Printer.cs",
+              "ToolTip": "C:\\Users\\Windows\\Documents\\C#\\High6\\Printer.cs",
+              "RelativeToolTip": "Printer.cs",
+              "ViewState": "AgIAACsBAAAAAAAAAAAAwD8BAABMAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-02-25T03:01:01.22Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 3,
+              "Title": "Printer.Designer.cs",
+              "DocumentMoniker": "C:\\Users\\Windows\\Documents\\C#\\High6\\Printer.Designer.cs",
+              "RelativeDocumentMoniker": "Printer.Designer.cs",
+              "ToolTip": "C:\\Users\\Windows\\Documents\\C#\\High6\\Printer.Designer.cs",
+              "RelativeToolTip": "Printer.Designer.cs",
+              "ViewState": "AgIAAMYAAAAAAAAAAADwv+sAAAABAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-02-25T02:58:22.48Z"
+            },
+            {
+              "$type": "Bookmark",
+              "Name": "ST:0:0:{34e76e81-ee4a-11d0-ae2e-00a0c90fffc3}"
+            },
+            {
+              "$type": "Bookmark",
+              "Name": "ST:0:0:{0ad07096-bba9-4900-a651-0598d26f6d24}"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 4,
+              "Title": "PrinterSetup.cs [Design]",
+              "DocumentMoniker": "C:\\Users\\Windows\\Documents\\C#\\High6\\PrinterSetup.cs",
+              "RelativeDocumentMoniker": "PrinterSetup.cs",
+              "ToolTip": "C:\\Users\\Windows\\Documents\\C#\\High6\\PrinterSetup.cs [Design]",
+              "RelativeToolTip": "PrinterSetup.cs [Design]",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-02-25T07:34:38.354Z",
+              "EditorCaption": " [Design]"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 6,
+              "Title": "Printer.cs [Design]",
+              "DocumentMoniker": "C:\\Users\\Windows\\Documents\\C#\\High6\\Printer.cs",
+              "RelativeDocumentMoniker": "Printer.cs",
+              "ToolTip": "C:\\Users\\Windows\\Documents\\C#\\High6\\Printer.cs [Design]",
+              "RelativeToolTip": "Printer.cs [Design]",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-02-25T03:44:02.74Z",
+              "EditorCaption": " [Design]"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
