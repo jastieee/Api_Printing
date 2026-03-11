@@ -17,17 +17,17 @@ namespace High6
         private readonly HttpClient _httpClient = new HttpClient();
         private CancellationTokenSource _cts = null;
 
-        // ── PSE Printer Device API ────────────────────────────────
-        private const string PseBaseUrl = "https://pse-ems-staging.h6app.site";
-        private const string PseForPrintUrl = PseBaseUrl + "/api/v1/printer-device/for-printing/{0}";
-        private const string PseSharedSecret = "8f3c2a9d7b1e4f6c9a0d2e5f8b7c4a1d";
+        // ── Runtime-loaded settings (from AppSettings) ────────────
+        private string _pseBaseUrl = "";
+        private string _pseSharedSecret = "";
+        private string _pseForPrintUrl => _pseBaseUrl.TrimEnd('/') + "/api/v1/printer-device/for-printing/{0}";
 
-        // ── C# own MySQL (XAMPP high6middleware) ──────────────────
-        private const string DbConn =
-            "Server=localhost;Port=3306;Database=high6middleware;Uid=root;Pwd=;";
+        // ── DB connection string — loaded from DbSettings ─────────
+        // Never hardcoded; always read from AppSettings at startup.
+        private string _dbConn = "";
 
         // ── Detected & Verified ZPL Printers ─────────────────────
-        // Key = printer_no (1-based), Value = (PrinterName, PortName, PrinterCode e.g. "PRINTER_001")
+        // Key = printer_no (1-based), Value = (PrinterName, PortName, PrinterCode)
         private Dictionary<int, (string PrinterName, string PortName, string PrinterCode)> _detectedPrinters
             = new Dictionary<int, (string, string, string)>();
 
@@ -41,31 +41,192 @@ namespace High6
         }
 
         // ══════════════════════════════════════════════════════════
-        // ⚙  Setup Button — open PrinterSetup form
+        // Form Load — read DB & API settings from local config
         // ══════════════════════════════════════════════════════════
-        private void btnSetup_Click(object sender, EventArgs e)
+        private void Printer_Load(object sender, EventArgs e)
         {
-            using var setup = new PrinterSetup();
-            setup.ShowDialog(this);
-            Log("ℹ Setup closed. Run 🔍 Detect Printers to apply new assignments.");
+            LoadAppSettings();
+            Log("ℹ  High6 Printer Service ready.");
+            Log("   1. Click ⚙ Setup DB to configure your database connection.");
+            Log("   2. Click ⚙ Setup Printers to assign physical printers.");
+            Log("   3. Click ▶ Start — it will test, detect, then poll automatically.");
         }
 
         // ══════════════════════════════════════════════════════════
-        // Test Connection
+        // Load settings from AppSettings.json (next to the .exe)
         // ══════════════════════════════════════════════════════════
-        private async void btnTestConnection_Click(object sender, EventArgs e)
+        private void LoadAppSettings()
         {
-            btnTestConnection.Enabled = false;
-            btnTestConnection.Text = "Testing...";
-            SetConnectionStatus("Testing...", System.Drawing.Color.Gray);
+            try
+            {
+                string path = System.IO.Path.Combine(
+                    AppDomain.CurrentDomain.BaseDirectory, "AppSettings.json");
 
-            // ── Test PSE API with a real signed request ───────────
-            // Use PRINTER_001 as a probe (any valid printer code will do)
+                if (!System.IO.File.Exists(path))
+                {
+                    Log("⚠ AppSettings.json not found — using empty defaults.");
+                    Log("   ➜ Click ⚙ Setup DB to create your settings.");
+                    return;
+                }
+
+                string json = System.IO.File.ReadAllText(path);
+                var doc = JsonDocument.Parse(json);
+                var root = doc.RootElement;
+
+                // DB
+                string host = root.TryGetProperty("db_host", out var h) ? h.GetString() : "192.168.0.71";
+                string port = root.TryGetProperty("db_port", out var po) ? po.GetString() : "3306";
+                string db = root.TryGetProperty("db_name", out var d) ? d.GetString() : "high6middleware";
+                string user = root.TryGetProperty("db_user", out var u) ? u.GetString() : "root";
+                string pass = root.TryGetProperty("db_pass", out var pw) ? pw.GetString() : "";
+
+                _dbConn = $"Server={host};Port={port};Database={db};Uid={user};Pwd={pass};";
+
+                // API
+                _pseBaseUrl = root.TryGetProperty("api_base_url", out var url) ? url.GetString() : "";
+                _pseSharedSecret = root.TryGetProperty("api_secret", out var sec) ? sec.GetString() : "";
+
+                Log($"✓ Settings loaded — DB: {host}:{port}/{db}");
+                Log($"✓ API endpoint: {_pseBaseUrl}");
+            }
+            catch (Exception ex)
+            {
+                Log("✗ Failed to load AppSettings.json: " + ex.Message);
+            }
+        }
+
+        // ══════════════════════════════════════════════════════════
+        // ⚙ Setup DB Button — open DbSetup form
+        // ══════════════════════════════════════════════════════════
+        private void btnSetupDb_Click(object sender, EventArgs e)
+        {
+            using var setup = new DbSetup();
+            if (setup.ShowDialog(this) == DialogResult.OK)
+            {
+                LoadAppSettings();   // reload after save
+                Log("✓ Database settings updated and reloaded.");
+            }
+        }
+
+        // ══════════════════════════════════════════════════════════
+        // ⚙ Setup Printers Button — open PrinterSetup form
+        // ══════════════════════════════════════════════════════════
+        private void btnSetupPrinters_Click(object sender, EventArgs e)
+        {
+            if (string.IsNullOrWhiteSpace(_dbConn))
+            {
+                MessageBox.Show("Please configure the database connection first (⚙ Setup DB).",
+                                "No DB Connection", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return;
+            }
+
+            using var setup = new PrinterSetup(_dbConn);
+            setup.ShowDialog(this);
+            Log("ℹ  Printer setup closed.");
+        }
+
+        // ══════════════════════════════════════════════════════════
+        // HMAC-SHA256 Signature  (body + timestamp, GET body = "")
+        // ══════════════════════════════════════════════════════════
+        private string GeneratePseSignature(string body, long timestamp)
+        {
+            string toSign = body + timestamp.ToString();
+            using var hmac = new HMACSHA256(Encoding.UTF8.GetBytes(_pseSharedSecret));
+            byte[] hash = hmac.ComputeHash(Encoding.UTF8.GetBytes(toSign));
+            return BitConverter.ToString(hash).Replace("-", "").ToLowerInvariant();
+        }
+
+        // ══════════════════════════════════════════════════════════
+        // Start Button — Test → Detect → Poll
+        // ══════════════════════════════════════════════════════════
+        private async void btnStart_Click(object sender, EventArgs e)
+        {
+            btnStart.Enabled = false;
+            btnStart.Text = "Starting…";
+
+            Log("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
+            Log("▶ Starting High6 Printer Service…");
+
+            // ── Step 1: Validate settings ─────────────────────────
+            if (string.IsNullOrWhiteSpace(_dbConn) ||
+                string.IsNullOrWhiteSpace(_pseBaseUrl) ||
+                string.IsNullOrWhiteSpace(_pseSharedSecret))
+            {
+                Log("✗ Missing settings. Please configure ⚙ Setup DB and ⚙ Setup Printers first.");
+                btnStart.Enabled = true;
+                btnStart.Text = "▶  Start";
+                return;
+            }
+
+            // ── Step 2: Test API connection ───────────────────────
+            Log("── Step 1/3 — Testing API connection…");
+            bool apiOk = await TestApiConnectionAsync();
+            if (!apiOk)
+            {
+                Log("✗ Cannot reach the PSE API. Check your endpoint or network.");
+                Log("   ➜ You can update the API URL in ⚙ Setup DB.");
+                btnStart.Enabled = true;
+                btnStart.Text = "▶  Start";
+                return;
+            }
+            Log("✓ API reachable.");
+
+            // ── Step 3: Test DB connection ────────────────────────
+            Log("── Step 2/3 — Testing database connection…");
+            bool dbOk = await TestDbConnectionAsync();
+            if (!dbOk)
+            {
+                Log("✗ Cannot connect to the database. Check your DB settings (⚙ Setup DB).");
+                btnStart.Enabled = true;
+                btnStart.Text = "▶  Start";
+                return;
+            }
+            Log("✓ Database connected.");
+
+            // ── Step 4: Detect printers ───────────────────────────
+            Log("── Step 3/3 — Detecting active ZPL printers…");
+            SetConnectionStatus("Detecting…", System.Drawing.Color.Gray);
+
+            _detectedPrinters.Clear();
+            _detectedPrinters = await Task.Run(() => DetectZplPrinters());
+
+            if (_detectedPrinters.Count == 0)
+            {
+                Log("✗ No active ZPL printers detected. Check cables or run ⚙ Setup Printers.");
+                SetConnectionStatus("No Printers", System.Drawing.Color.FromArgb(192, 57, 43));
+                btnStart.Enabled = true;
+                btnStart.Text = "▶  Start";
+                return;
+            }
+
+            Log($"✓ {_detectedPrinters.Count} printer(s) ready:");
+            foreach (var kv in _detectedPrinters)
+                Log($"   Printer {kv.Key} [{kv.Value.PrinterCode}] → \"{kv.Value.PrinterName}\"");
+
+            SetConnectionStatus("Online", System.Drawing.Color.FromArgb(39, 174, 96));
+
+            // ── Step 5: Begin polling ─────────────────────────────
+            _isRunning = true;
+            _isPaused = false;
+
+            btnPause.Enabled = true;
+            btnEnd.Enabled = true;
+
+            Log("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
+            Log("✅ Service started — polling every 3 seconds per printer.");
+
+            _cts = new CancellationTokenSource();
+            _ = PollLoopAsync(_cts.Token);
+        }
+
+        // ── Test API (returns true = reachable) ───────────────────
+        private async Task<bool> TestApiConnectionAsync()
+        {
             try
             {
                 long ts = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
                 string sig = GeneratePseSignature("", ts);
-                string probeUrl = string.Format(PseForPrintUrl, "PRINTER_001");
+                string probeUrl = string.Format(_pseForPrintUrl, "PRINTER_001");
 
                 var req = new HttpRequestMessage(HttpMethod.Get, probeUrl);
                 req.Headers.Add("X-Printer-Signature", sig);
@@ -74,83 +235,74 @@ namespace High6
 
                 var res = await _httpClient.SendAsync(req);
 
-                if (res.IsSuccessStatusCode || (int)res.StatusCode == 401)
+                // 401 = server alive but auth rejected — still "reachable"
+                if (res.IsSuccessStatusCode || (int)res.StatusCode == 401 || (int)res.StatusCode == 404)
                 {
-                    // 401 still means the server is reachable (auth issue ≠ offline)
-                    SetConnectionStatus("Online", System.Drawing.Color.FromArgb(39, 174, 96));
-                    Log($"✓ PSE API reachable — HTTP {(int)res.StatusCode}");
+                    Log($"   API responded: HTTP {(int)res.StatusCode}");
+                    return true;
                 }
-                else
-                {
-                    SetConnectionStatus($"API Error ({(int)res.StatusCode})",
-                        System.Drawing.Color.FromArgb(192, 57, 43));
-                    Log($"✗ PSE API responded: {(int)res.StatusCode}");
-                }
+
+                Log($"   API error: HTTP {(int)res.StatusCode}");
+                return false;
             }
             catch (Exception ex)
             {
-                SetConnectionStatus("API Offline", System.Drawing.Color.FromArgb(192, 57, 43));
-                Log("✗ PSE API unreachable: " + ex.Message);
+                Log("   API exception: " + ex.Message);
+                return false;
             }
+        }
 
-            // ── Test MySQL ─────────────────────────────────────────
+        // ── Test DB ───────────────────────────────────────────────
+        private async Task<bool> TestDbConnectionAsync()
+        {
             try
             {
-                using var conn = new MySqlConnection(DbConn);
+                using var conn = new MySqlConnection(_dbConn);
                 await conn.OpenAsync();
-                Log("✓ MySQL (high6middleware) connected.");
+                return true;
             }
             catch (Exception ex)
             {
-                Log("✗ MySQL error: " + ex.Message);
+                Log("   DB exception: " + ex.Message);
+                return false;
             }
-
-            btnTestConnection.Enabled = true;
-            btnTestConnection.Text = "Test Connection";
         }
 
         // ══════════════════════════════════════════════════════════
-        // HMAC-SHA256 Signature  (body + timestamp, GET body = "")
+        // Pause / End
         // ══════════════════════════════════════════════════════════
-        private static string GeneratePseSignature(string body, long timestamp)
+        private void btnPause_Click(object sender, EventArgs e)
         {
-            string toSign = body + timestamp.ToString();
-            using var hmac = new HMACSHA256(Encoding.UTF8.GetBytes(PseSharedSecret));
-            byte[] hash = hmac.ComputeHash(Encoding.UTF8.GetBytes(toSign));
-            return BitConverter.ToString(hash).Replace("-", "").ToLowerInvariant();
-        }
-
-        // ══════════════════════════════════════════════════════════
-        // Detect Printers Button
-        // ══════════════════════════════════════════════════════════
-        private async void btnDetectPrinters_Click(object sender, EventArgs e)
-        {
-            btnDetectPrinters.Enabled = false;
-            btnDetectPrinters.Text = "Scanning...";
-
-            _detectedPrinters.Clear();
-
-            Log("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
-            Log("🔍 Scanning for active ZPL printers (DB-matched)...");
-
-            _detectedPrinters = await Task.Run(() => DetectZplPrinters());
-
-            Log("──────────────────────────────────────────────────────");
-            if (_detectedPrinters.Count > 0)
+            _isPaused = !_isPaused;
+            if (_isPaused)
             {
-                Log("✅ " + _detectedPrinters.Count + " active ZPL printer(s) ready:");
-                foreach (var kv in _detectedPrinters)
-                    Log($"   Printer {kv.Key} [{kv.Value.PrinterCode}] → \"{kv.Value.PrinterName}\"  [{kv.Value.PortName}]");
+                btnPause.Text = "▶  Resume";
+                btnPause.BackColor = System.Drawing.Color.FromArgb(39, 174, 96);
+                Log("⏸ Polling paused.");
             }
             else
             {
-                Log("❌ No active ZPL printers matched.");
-                Log("   ➜ Open ⚙ Setup to assign printers to slots, then try again.");
+                btnPause.Text = "⏸  Pause";
+                btnPause.BackColor = System.Drawing.Color.FromArgb(243, 156, 18);
+                Log("▶ Polling resumed.");
             }
-            Log("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
+        }
 
-            btnDetectPrinters.Enabled = true;
-            btnDetectPrinters.Text = "🔍  Detect Printers";
+        private void btnEnd_Click(object sender, EventArgs e)
+        {
+            _cts?.Cancel();
+            _isRunning = false;
+            _isPaused = false;
+
+            btnStart.Enabled = true;
+            btnStart.Text = "▶  Start";
+            btnPause.Enabled = false;
+            btnEnd.Enabled = false;
+            btnPause.Text = "⏸  Pause";
+            btnPause.BackColor = System.Drawing.Color.FromArgb(243, 156, 18);
+
+            SetConnectionStatus("Stopped", System.Drawing.Color.FromArgb(127, 140, 141));
+            Log("⏹ Service stopped.");
         }
 
         // ══════════════════════════════════════════════════════════
@@ -159,19 +311,14 @@ namespace High6
         private Dictionary<int, (string PrinterName, string PortName, string PrinterCode)> DetectZplPrinters()
         {
             var result = new Dictionary<int, (string, string, string)>();
-
-            // ── Step 1: Load configured assignments from DB ───────
-            // Returns: printer_number → (printer_name, printer_code)
             var dbAssignments = LoadDbPrinterAssignments();
 
             if (dbAssignments.Count == 0)
             {
-                Log("⚠ No printer assignments found in DB.");
-                Log("   ➜ Click ⚙ Setup to assign physical printers to each slot.");
+                Log("⚠ No printer assignments in DB. Use ⚙ Setup Printers to assign them.");
                 return result;
             }
 
-            // ── Step 2: Build WMI snapshot of all ZPL printers ───
             var wmiPrinters = new Dictionary<string, (string Name, string Port, bool Online)>(
                 StringComparer.OrdinalIgnoreCase);
 
@@ -210,12 +357,11 @@ namespace High6
                 return result;
             }
 
-            // ── Step 3: Match DB assignments → WMI results ────────
             foreach (var kv in dbAssignments)
             {
                 int printerNo = kv.Key;
-                string configured = kv.Value.PrinterName;   // Windows printer name
-                string printerCode = kv.Value.PrinterCode;   // e.g. "PRINTER_001"
+                string configured = kv.Value.PrinterName;
+                string printerCode = kv.Value.PrinterCode;
 
                 if (wmiPrinters.TryGetValue(configured, out var info))
                 {
@@ -225,27 +371,24 @@ namespace High6
                         result[printerNo] = (info.Name, info.Port, printerCode);
                     }
                     else
-                    {
-                        Log($"   ⚠ Printer {printerNo} [{printerCode}] → \"{info.Name}\" is OFFLINE or has an error.");
-                    }
+                        Log($"   ⚠ Printer {printerNo} [{printerCode}] → \"{info.Name}\" is OFFLINE.");
                 }
                 else
                 {
-                    Log($"   ✗ Printer {printerNo} [{printerCode}] → \"{configured}\" NOT FOUND on this PC.");
-                    Log($"      ➜ Check cable / driver, or open ⚙ Setup to reassign.");
+                    Log($"   ✗ Printer {printerNo} [{printerCode}] → \"{configured}\" NOT FOUND.");
+                    Log($"      ➜ Check cable/driver or use ⚙ Setup Printers to reassign.");
                 }
             }
 
             return result;
         }
 
-        // ── Load printer_number → (printer_name, printer_code) from DB ──
         private Dictionary<int, (string PrinterName, string PrinterCode)> LoadDbPrinterAssignments()
         {
             var map = new Dictionary<int, (string, string)>();
             try
             {
-                using var conn = new MySqlConnection(DbConn);
+                using var conn = new MySqlConnection(_dbConn);
                 conn.Open();
 
                 var sql = "SELECT printer_number, printer_name, printer_code " +
@@ -272,13 +415,17 @@ namespace High6
 
         // ══════════════════════════════════════════════════════════
         // Print Label via Windows Spooler
+        // 3" × 2"  =  812 × 609 dots  @  203 dpi  (standard ZPL resolution)
+        //             (3 × 203 = 609 width,  2 × 203 = 406 … rounded to 812×609
+        //              or use 300 dpi: 900×600 — we'll use 203 dpi standard)
+        // Final chosen: PW=609, LL=406  (3"W × 2"H at 203 dpi)
         // ══════════════════════════════════════════════════════════
         private void PrintLabel(string name, string company, string participantNo,
                                 string qrCodeUrl, int printerNo)
         {
             if (!_detectedPrinters.TryGetValue(printerNo, out var info))
             {
-                Log($"✗ Printer {printerNo} not in active list. Run 🔍 Detect Printers first.");
+                Log($"✗ Printer {printerNo} not in active list. Restart service to redetect.");
                 return;
             }
 
@@ -298,117 +445,216 @@ namespace High6
             }
         }
 
-        // ── Smarter word wrap helper ──────────────────────────────────
+        // ── Word-wrap helper ──────────────────────────────────────
         private (string Line1, string Line2) SplitIntoTwoLines(string text, int threshold)
         {
             if (text.Length <= threshold) return (text, "");
 
-            // Try to find best split point near the middle
             int mid = text.Length / 2;
             int splitPos = -1;
 
-            // Search outward from center for a space
             for (int i = 0; i <= mid; i++)
             {
                 if (mid + i < text.Length && text[mid + i] == ' ') { splitPos = mid + i; break; }
                 if (mid - i >= 0 && text[mid - i] == ' ') { splitPos = mid - i; break; }
             }
 
-            // No space found at all → hard split at midpoint
             if (splitPos < 0) splitPos = mid;
-
             return (text.Substring(0, splitPos).Trim(), text.Substring(splitPos).Trim());
         }
 
-        // ── Build full ZPL label ──────────────────────────────────
+        // ══════════════════════════════════════════════════════════
+        //  ZPL LABEL — 3" W × 2" H  @ 203 dpi
+        //  PW = 609  (3 × 203)
+        //  LL = 406  (2 × 203)
+        //
+        //  Layout:
+        //    Outer border  : ^FO5,5^GB597,394,12
+        //    Right QR panel: ^FO405,5^GB199,392,9   (x=405..604)
+        //    Left text area : x=18..395, y=15..390  (377w × 375h)
+        // ══════════════════════════════════════════════════════════
+        //private string BuildZplLabel(string name, string company, string participantNo, string qrCodeUrl)
+        //{
+        //    int labelWidth = 609;
+        //    int labelHeight = 406;
+
+        //    int boxLeft = 5;
+        //    int boxTop = 5;
+        //    int boxW = 597;
+        //    int boxH = 394;
+        //    int borderThk = 8;
+
+        //    int contentWidth = 540;
+        //    int contentX = (labelWidth - contentWidth) / 2;
+
+        //    // Name font (slightly bigger)
+        //    int nameFont = 64;
+
+        //    // Company font
+        //    int companyFont = 40;
+
+        //    // QR
+        //    int qrSize = 130;
+        //    int qrX = (labelWidth - qrSize) / 2;
+
+        //    int nameY = 80;
+        //    int companyY = 170;
+        //    int qrY = 220;
+
+        //    string qrZpl = BuildQrSection(qrCodeUrl, participantNo, qrX, qrY, qrSize);
+
+        //    var zpl = new StringBuilder();
+
+        //    zpl.AppendLine("^XA");
+        //    zpl.AppendLine("^PW609");
+        //    zpl.AppendLine("^LL406");
+        //    zpl.AppendLine("^CI28");
+
+        //    // Border
+        //    zpl.AppendLine($"^FO{boxLeft},{boxTop}^GB{boxW},{boxH},{borderThk}^FS");
+
+        //    // NAME (centered)
+        //    zpl.AppendLine($"^FO{contentX},{nameY}");
+        //    zpl.AppendLine($"^A0N,{nameFont},{nameFont}");
+        //    zpl.AppendLine($"^FB{contentWidth},2,10,C");
+        //    zpl.AppendLine($"^FD{EscapeZpl(name)}^FS");
+
+        //    // COMPANY (centered)
+        //    if (!string.IsNullOrEmpty(company))
+        //    {
+        //        zpl.AppendLine($"^FO{contentX},{companyY}");
+        //        zpl.AppendLine($"^A0N,{companyFont},{companyFont}");
+        //        zpl.AppendLine($"^FB{contentWidth},2,6,C");
+        //        zpl.AppendLine($"^FD{EscapeZpl(company)}^FS");
+        //    }
+
+        //    // QR
+        //    zpl.AppendLine(qrZpl);
+
+        //    zpl.AppendLine("^PQ1,0,1,Y");
+        //    zpl.AppendLine("^XZ");
+
+        //    return zpl.ToString();
+        //}
+
+        //update wrap layout without overlapping text
         private string BuildZplLabel(string name, string company, string participantNo, string qrCodeUrl)
         {
-            string qrZpl = BuildQrSection(qrCodeUrl, participantNo);
+            int labelWidth = 609;
+            int labelHeight = 406;
+            int boxLeft = 5;
+            int boxTop = 5;
+            int boxW = 597;
+            int boxH = 394;
+            int borderThk = 8;
 
-            // ── NAME font + wrap ──────────────────────────────────────
-            int nameFontSize;
-            string nameLine1, nameLine2;
+            int contentWidth = 540;
+            int contentX = (labelWidth - contentWidth) / 2;
 
-            if (name.Length <= 10) { nameFontSize = 72; (nameLine1, nameLine2) = (name, ""); }
-            else if (name.Length <= 16) { nameFontSize = 58; (nameLine1, nameLine2) = (name, ""); }
-            else if (name.Length <= 22) { nameFontSize = 46; (nameLine1, nameLine2) = (name, ""); }
-            else if (name.Length <= 32) { nameFontSize = 42; (nameLine1, nameLine2) = SplitIntoTwoLines(name, 22); }
-            else { nameFontSize = 36; (nameLine1, nameLine2) = SplitIntoTwoLines(name, 18); }
+            // ── Font sizes ────────────────────────────────────────────
+            // Name: scale down if very long
+            int nameFont;
+            if (name.Length <= 14) nameFont = 64;
+            else if (name.Length <= 20) nameFont = 54;
+            else if (name.Length <= 28) nameFont = 44;
+            else nameFont = 36;
 
-            // ── COMPANY font + wrap ───────────────────────────────────
-            int compFontSize;
-            string compLine1, compLine2;
+            // Company: scale down if very long
+            int compFont;
+            if (company.Length <= 18) compFont = 38;
+            else if (company.Length <= 26) compFont = 32;
+            else if (company.Length <= 36) compFont = 26;
+            else compFont = 22;
 
-            if (company.Length <= 14) { compFontSize = 38; (compLine1, compLine2) = (company, ""); }
-            else if (company.Length <= 20) { compFontSize = 30; (compLine1, compLine2) = (company, ""); }
-            else if (company.Length <= 30) { compFontSize = 24; (compLine1, compLine2) = (company, ""); }
-            else { compFontSize = 22; (compLine1, compLine2) = SplitIntoTwoLines(company, 20); }
+            // ── Estimate chars per line at each font size ─────────────
+            // At 203dpi, ZPL A0 font: approx contentWidth / (fontSize * 0.6)
+            int nameCharsPerLine = (int)(contentWidth / (nameFont * 0.60));
+            int compCharsPerLine = (int)(contentWidth / (compFont * 0.60));
 
-            // ── Y positions ───────────────────────────────────────────
-            int leftMargin = 22;
-            int partFontSize = 28;
-            int partY = 122;
+            int nameLines = name.Length <= nameCharsPerLine ? 1 : 2;
+            int compLines = company.Length <= compCharsPerLine ? 1 : 2;
 
-            int nameY = partY + partFontSize + 20;
-            int name2Y = nameY + nameFontSize + 8;
+            int nameLineGap = 8;
+            int compLineGap = 6;
 
-            int compY = (nameLine2 != "" ? name2Y + nameFontSize : nameY + nameFontSize) + 18;
-            int comp2Y = compY + compFontSize + 6;
+            int nameBlockH = nameLines == 1 ? nameFont : nameFont * 2 + nameLineGap;
+            int compBlockH = compLines == 1 ? compFont : compFont * 2 + compLineGap;
+
+            // ── QR size ───────────────────────────────────────────────
+            int qrSize = 120;
+
+            // ── Gaps between sections ─────────────────────────────────
+            int gapNameComp = 16;
+            int gapCompQr = 18;
+            int topPad = 14;
+            int bottomPad = 14;
+
+            // ── Total content height ──────────────────────────────────
+            int totalContent = topPad + nameBlockH + gapNameComp + compBlockH + gapCompQr + qrSize + bottomPad;
+
+            // Compress gaps if overflow
+            int available = boxH - borderThk * 2;
+            if (totalContent > available)
+            {
+                gapNameComp = 8;
+                gapCompQr = 10;
+                topPad = 8;
+                bottomPad = 8;
+                totalContent = topPad + nameBlockH + gapNameComp + compBlockH + gapCompQr + qrSize + bottomPad;
+            }
+
+            // ── Vertically center the whole block inside the box ─────
+            int innerTop = boxTop + borderThk;
+            int startY = innerTop + (available - totalContent) / 2;
+            if (startY < innerTop + 4) startY = innerTop + 4;
+
+            int nameY = startY + topPad;
+            int compY = nameY + nameBlockH + gapNameComp;
+            int qrY = compY + compBlockH + gapCompQr;
+            int qrX = (labelWidth - qrSize) / 2;
+
+            string qrZpl = BuildQrSection(qrCodeUrl, participantNo, qrX, qrY, qrSize);
 
             var zpl = new StringBuilder();
 
-            // ── Config block ──────────────────────────────────────────
+            // Config block
             zpl.AppendLine("^XA");
-            zpl.AppendLine("~TA000");
-            zpl.AppendLine("~JSN");
-            zpl.AppendLine("^LT0");
-            zpl.AppendLine("^MNW");
-            zpl.AppendLine("^MTT");
-            zpl.AppendLine("^PON");
-            zpl.AppendLine("^PMN");
-            zpl.AppendLine("^LH0,0");
-            zpl.AppendLine("^JMA");
-            zpl.AppendLine("^PR8,8");
-            zpl.AppendLine("~SD15");
-            zpl.AppendLine("^JUS");
-            zpl.AppendLine("^LRN");
-            zpl.AppendLine("^CI28");
-            zpl.AppendLine("^PA0,1,1,0");
-            zpl.AppendLine("^XZ");
-
-            // ── Label block ───────────────────────────────────────────
-            zpl.AppendLine("^XA");
-            zpl.AppendLine("^MMT");
-            zpl.AppendLine("^PW711");
+            zpl.AppendLine("^PW609");
             zpl.AppendLine("^LL406");
-            zpl.AppendLine("^LS0");
+            zpl.AppendLine("^CI28");
 
-            // Borders
-            zpl.AppendLine("^FO7,5^GB695,394,15^FS");
-            zpl.AppendLine("^FO9,5^GB693,100,11^FS");
+            // Single border box
+            zpl.AppendLine($"^FO{boxLeft},{boxTop}^GB{boxW},{boxH},{borderThk}^FS");
 
-            // Logo GRF (static branding in header)
-            zpl.AppendLine("^FO33,31^GFA,569,1440,36,:Z64:eJzl07Fu2zAQBuATOHDk2qn3GhkC6bVURIhkaPDoR/CryJPHvgKFPIDP6FAWJXi5o2TFjp3aewlwIPEN/Hl3AP/xarvru1eg82PB/q6xTNemvTSOw12Du3jrjZcGmrumlAcmOAaEIwEXb1RCgHYgGxyuqIiTeTLc/Y6tbMOrQ1DzMhBG1+6DSWoajTZw0m15xxELghdPVXJ8iI67yTj2zLotj5zU/BDDjjktBntK1d6nyq3H+JoNUVO5NzlshtkUFLH3EY0ZQ+l6DzXRN3S7UKKdTVWEgMYH15mRJhMI0K2oLI2fjCSZjRNj+wHqmqD9wrCavZiGLKup+LNZL+ZZc52Zp8Vsfokx+w7qktrthymhXMy2V3MQ812S5vfM9WqWXFuTDagJZwZBf19NRFRTqHGzwVP/yD+rSRVu1HA2MWfHdTf1odRLDTNqLukUqC1xzuXym6Wfpe7ZSAU/TDsbrYXMhfSPmr/R/jkZQ9VPNTbXXfpbbnMuMuNRTJMNuo2YIl028Wk+bvT3lbkxS59N8YDBR8yN2b4y/gHT/cN8vd4Bm3FU6Q==:9959");
+            // ── NAME — centered, bold (drawn twice +1px), wraps via ^FB ──
+            // Line 1
+            zpl.AppendLine($"^FO{contentX},{nameY}^A0N,{nameFont},{nameFont}^FB{contentWidth},1,0,C^FD{EscapeZpl(nameLines == 1 ? name : GetLine(name, nameCharsPerLine, 1))}^FS");
+            zpl.AppendLine($"^FO{contentX + 1},{nameY}^A0N,{nameFont},{nameFont}^FB{contentWidth},1,0,C^FD{EscapeZpl(nameLines == 1 ? name : GetLine(name, nameCharsPerLine, 1))}^FS");
 
-            // QR box border
-            zpl.AppendLine("^FO494,94^GB206,303,11^FS");
+            // Line 2 (if wrapped)
+            if (nameLines == 2)
+            {
+                int name2Y = nameY + nameFont + nameLineGap;
+                string nameLine2 = GetLine(name, nameCharsPerLine, 2);
+                zpl.AppendLine($"^FO{contentX},{name2Y}^A0N,{nameFont},{nameFont}^FB{contentWidth},1,0,C^FD{EscapeZpl(nameLine2)}^FS");
+                zpl.AppendLine($"^FO{contentX + 1},{name2Y}^A0N,{nameFont},{nameFont}^FB{contentWidth},1,0,C^FD{EscapeZpl(nameLine2)}^FS");
+            }
 
-            // QR code (downloaded from PSE CDN or fallback)
+            // ── COMPANY — centered, wraps via ^FB ────────────────────
+            if (!string.IsNullOrEmpty(company))
+            {
+                zpl.AppendLine($"^FO{contentX},{compY}^A0N,{compFont},{compFont}^FB{contentWidth},1,0,C^FD{EscapeZpl(compLines == 1 ? company : GetLine(company, compCharsPerLine, 1))}^FS");
+
+                if (compLines == 2)
+                {
+                    int comp2Y = compY + compFont + compLineGap;
+                    string compLine2 = GetLine(company, compCharsPerLine, 2);
+                    zpl.AppendLine($"^FO{contentX},{comp2Y}^A0N,{compFont},{compFont}^FB{contentWidth},1,0,C^FD{EscapeZpl(compLine2)}^FS");
+                }
+            }
+
+            // ── QR code ───────────────────────────────────────────────
             zpl.AppendLine(qrZpl);
-
-            // Participant No
-            if (!string.IsNullOrEmpty(participantNo))
-                zpl.AppendLine($"^FO{leftMargin},{partY}^A0N,{partFontSize},{partFontSize}^FD{participantNo}^FS");
-
-            // Name
-            zpl.AppendLine($"^FO{leftMargin},{nameY}^A0N,{nameFontSize},{nameFontSize}^FD{nameLine1}^FS");
-            if (!string.IsNullOrEmpty(nameLine2))
-                zpl.AppendLine($"^FO{leftMargin},{name2Y}^A0N,{nameFontSize},{nameFontSize}^FD{nameLine2}^FS");
-
-            // Company
-            zpl.AppendLine($"^FO{leftMargin},{compY}^A0N,{compFontSize},{compFontSize}^FD{compLine1}^FS");
-            if (!string.IsNullOrEmpty(compLine2))
-                zpl.AppendLine($"^FO{leftMargin},{comp2Y}^A0N,{compFontSize},{compFontSize}^FD{compLine2}^FS");
 
             zpl.AppendLine("^PQ1,0,1,Y");
             zpl.AppendLine("^XZ");
@@ -416,18 +662,42 @@ namespace High6
             return zpl.ToString();
         }
 
-        // ── Download QR from PSE URL → convert to ZPL GRF ────────
-        private string BuildQrSection(string qrCodeUrl, string participantNo)
+        // ── Splits text into word-wrapped lines, returns line N (1-based) ──
+        private string GetLine(string text, int charsPerLine, int lineNumber)
         {
-            int qrSize = 180;
-            int qrX = 710 - qrSize - 15;   // right side, 15-dot margin = 515
-            int qrY = (406 - qrSize) / 2;  // vertically centered = 113
+            if (text.Length <= charsPerLine)
+                return lineNumber == 1 ? text : "";
 
+            // Find best split point near the middle
+            int mid = text.Length / 2;
+            int splitPos = -1;
+
+            for (int i = 0; i <= mid; i++)
+            {
+                if (mid + i < text.Length && text[mid + i] == ' ') { splitPos = mid + i; break; }
+                if (mid - i >= 0 && text[mid - i] == ' ') { splitPos = mid - i; break; }
+            }
+
+            if (splitPos < 0) splitPos = charsPerLine; // hard split if no space found
+
+            string line1 = text.Substring(0, splitPos).Trim();
+            string line2 = text.Substring(splitPos).Trim();
+
+            return lineNumber == 1 ? line1 : line2;
+        }
+
+        private static string EscapeZpl(string text)
+        {
+            if (string.IsNullOrEmpty(text)) return text;
+            return text.Replace("^", " ").Replace("~", " ");
+        }
+
+        private string BuildQrSection(string qrCodeUrl, string participantNo, int qrX, int qrY, int qrSize)
+        {
             if (!string.IsNullOrEmpty(qrCodeUrl))
             {
                 try
                 {
-                    // Download the QR image from the PSE CDN URL
                     using var wc = new System.Net.WebClient();
                     byte[] imgBytes = wc.DownloadData(qrCodeUrl);
 
@@ -440,16 +710,14 @@ namespace High6
                 }
                 catch (Exception ex)
                 {
-                    Log("⚠ QR image download failed, falling back to ^BQ: " + ex.Message);
+                    Log("⚠ QR download failed, using ^BQ fallback: " + ex.Message);
                 }
             }
 
-            // Fallback: native ZPL QR using participant_no as data
             string qrData = !string.IsNullOrEmpty(participantNo) ? participantNo : "PARTICIPANT";
-            return $"^FO{qrX},{qrY}\n^BQN,2,5\n^FDLA,{qrData}^FS\n";
+            return $"^FO{qrX},{qrY}\n^BQN,2,5\n^FH\\^FDLA,{qrData}^FS\n";
         }
 
-        // ── Bitmap → ZPL GRF hex ─────────────────────────────────
         private string BitmapToZplGrf(System.Drawing.Bitmap bmp, out int totalBytes, out int rowBytes)
         {
             int width = bmp.Width;
@@ -478,63 +746,7 @@ namespace High6
         }
 
         // ══════════════════════════════════════════════════════════
-        // Start / Pause / End
-        // ══════════════════════════════════════════════════════════
-        private void btnStart_Click(object sender, EventArgs e)
-        {
-            if (_detectedPrinters.Count == 0)
-            {
-                Log("⚠ No active printers detected. Please run 🔍 Detect Printers before starting.");
-                return;
-            }
-
-            _isRunning = true;
-            _isPaused = false;
-
-            btnStart.Enabled = false;
-            btnPause.Enabled = true;
-            btnEnd.Enabled = true;
-
-            Log("▶ Service started — polling PSE API every 3 seconds per printer...");
-
-            _cts = new CancellationTokenSource();
-            _ = PollLoopAsync(_cts.Token);
-        }
-
-        private void btnPause_Click(object sender, EventArgs e)
-        {
-            _isPaused = !_isPaused;
-            if (_isPaused)
-            {
-                btnPause.Text = "▶  Resume";
-                btnPause.BackColor = System.Drawing.Color.FromArgb(39, 174, 96);
-                Log("⏸ Polling paused.");
-            }
-            else
-            {
-                btnPause.Text = "⏸  Pause";
-                btnPause.BackColor = System.Drawing.Color.FromArgb(243, 156, 18);
-                Log("▶ Polling resumed.");
-            }
-        }
-
-        private void btnEnd_Click(object sender, EventArgs e)
-        {
-            _cts?.Cancel();
-            _isRunning = false;
-            _isPaused = false;
-
-            btnStart.Enabled = true;
-            btnPause.Enabled = false;
-            btnEnd.Enabled = false;
-            btnPause.Text = "⏸  Pause";
-            btnPause.BackColor = System.Drawing.Color.FromArgb(243, 156, 18);
-
-            Log("⏹ Service stopped.");
-        }
-
-        // ══════════════════════════════════════════════════════════
-        // Poll Loop — calls each detected printer's own endpoint
+        // Poll Loop
         // ══════════════════════════════════════════════════════════
         private async Task PollLoopAsync(CancellationToken token)
         {
@@ -548,29 +760,19 @@ namespace High6
             }
         }
 
-        // ══════════════════════════════════════════════════════════
-        // Fetch from PSE API for every detected printer → Print
-        // ══════════════════════════════════════════════════════════
         private async Task FetchAndPrintAllPrintersAsync()
         {
-            // Each PC only polls the printers it has physically detected
             foreach (var kv in _detectedPrinters)
-            {
-                int printerNo = kv.Key;
-                string printerCode = kv.Value.PrinterCode;   // e.g. "PRINTER_001"
-
-                await FetchAndPrintForPrinterAsync(printerNo, printerCode);
-            }
+                await FetchAndPrintForPrinterAsync(kv.Key, kv.Value.PrinterCode);
         }
 
         private async Task FetchAndPrintForPrinterAsync(int printerNo, string printerCode)
         {
             try
             {
-                // ── Build signed request ──────────────────────────
                 long ts = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
-                string sig = GeneratePseSignature("", ts);   // GET body is empty
-                string url = string.Format(PseForPrintUrl, printerCode);
+                string sig = GeneratePseSignature("", ts);
+                string url = string.Format(_pseForPrintUrl, printerCode);
 
                 var req = new HttpRequestMessage(HttpMethod.Get, url);
                 req.Headers.Add("X-Printer-Signature", sig);
@@ -596,9 +798,8 @@ namespace High6
                 var root = JsonSerializer.Deserialize<JsonElement>(body);
 
                 if (!root.TryGetProperty("participants", out var participants)) return;
-
                 int count = participants.GetArrayLength();
-                if (count == 0) return;   // nothing queued — silent
+                if (count == 0) return;
 
                 Log($"↓ [{printerCode}] {count} participant(s) to print.");
 
@@ -611,77 +812,63 @@ namespace High6
             }
         }
 
-        // ══════════════════════════════════════════════════════════
-        // Process one participant from the PSE API response
-        // ══════════════════════════════════════════════════════════
         private async Task ProcessParticipantAsync(JsonElement p, int printerNo, string printerCode)
         {
-            // PSE response fields:
-            //   id            → stored as job_id in our DB (serves as dedup key)
-            //   printer_id    → e.g. "PRINTER_001"
-            //   name          → full name
-            //   company       → company name
-            //   participant_no→ e.g. "P202600123"
-            //   qr_code_path  → full URL to QR PNG on PSE CDN
-
-            //string pseId = p.GetProperty("id").GetString();
             var idProp = p.GetProperty("id");
             string pseId = idProp.ValueKind switch
             {
-                JsonValueKind.String => idProp.GetString(),           // alphanumeric string → get as string
-                JsonValueKind.Number => idProp.GetInt64().ToString(), // numeric → convert to string cleanly
-                _ => idProp.GetRawText().Trim('"')                    // fallback: strip any stray quotes
+                JsonValueKind.String => idProp.GetString(),
+                JsonValueKind.Number => idProp.GetInt64().ToString(),
+                _ => idProp.GetRawText().Trim('"')
             };
+
             string name = p.GetProperty("name").GetString();
             string company = p.GetProperty("company").GetString();
+
             string participantNo = null;
             if (p.TryGetProperty("participant_no", out var pno))
-            {
                 participantNo = pno.ValueKind == JsonValueKind.String ? pno.GetString()
                               : pno.ValueKind == JsonValueKind.Number ? pno.GetRawText()
                               : null;
-            }
+
             string qrCodeUrl = p.TryGetProperty("qr_code_path", out var qr) && qr.ValueKind != JsonValueKind.Null
                                    ? qr.GetString() : null;
 
-            // Save to local DB — use PSE's `id` as our job_id (dedup key).
-            // qr_code_url stores the PSE CDN URL; the actual GRF bytes are downloaded at print time.
             bool saved = await SaveToLocalDbAsync(pseId, name, company, participantNo, qrCodeUrl, printerNo);
 
             if (saved)
             {
-                // Download QR image from PSE CDN and send to printer
                 PrintLabel(name, company, participantNo, qrCodeUrl, printerNo);
                 Log($"✓ Printed [{printerCode}] — {name} | {company} | {participantNo} (id: {pseId})");
             }
             else
             {
-                // Already in DB = already printed (PSE server should not resend, but guard anyway)
                 Log($"⚠ [{printerCode}] Entry {pseId} already in local DB — skipped.");
             }
         }
 
-        // ══════════════════════════════════════════════════════════
-        // Save to high6middleware DB
-        // job_id   = PSE's `id` field  (e.g. "01JABC123456789")
-        // qr_code_url = PSE CDN URL    (downloaded fresh at print time)
-        // ══════════════════════════════════════════════════════════
         private async Task<bool> SaveToLocalDbAsync(
             string pseId, string name, string company,
             string participantNo, string qrCodeUrl, int printerNo)
         {
             try
             {
-                using var conn = new MySqlConnection(DbConn);
+                if (string.IsNullOrWhiteSpace(pseId))
+                {
+                    Log("✗ DB save skipped: pseId is null/empty.");
+                    return false;
+                }
+
+                using var conn = new MySqlConnection(_dbConn);
                 await conn.OpenAsync();
 
-                // ── Duplicate check on PSE id ─────────────────────
                 using var checkCmd = new MySqlCommand(
                     "SELECT COUNT(*) FROM print_jobs WHERE job_id = @jobId;", conn);
                 checkCmd.Parameters.AddWithValue("@jobId", pseId);
-                if (Convert.ToInt32(await checkCmd.ExecuteScalarAsync()) > 0) return false;
+                int existing = Convert.ToInt32(await checkCmd.ExecuteScalarAsync());
 
-                // ── Resolve printer_number → printers.id (FK) ─────
+                if (existing > 0) return false;
+
                 using var printerCmd = new MySqlCommand(
                     "SELECT id FROM printers WHERE printer_number = @num LIMIT 1;", conn);
                 printerCmd.Parameters.AddWithValue("@num", printerNo);
@@ -689,19 +876,16 @@ namespace High6
 
                 if (printerIdObj == null)
                 {
-                    Log($"✗ Printer number {printerNo} not found in printers table.");
+                    Log($"✗ DB → printer_number {printerNo} not found in printers table.");
                     return false;
                 }
 
                 int printerId = Convert.ToInt32(printerIdObj);
 
-                // ── Insert ────────────────────────────────────────
-                // job_id      = PSE's id  (dedup / audit trail)
-                // qr_code_url = PSE CDN URL (not a local path; downloaded at print time)
                 var sql = @"INSERT INTO print_jobs
-                            (job_id, name, company_name, participant_no, qr_code_url, printer_id, created_at)
-                        VALUES
-                            (@jobId, @name, @company, @participantNo, @qrCodeUrl, @printerId, @now);";
+                                (job_id, name, company_name, participant_no, qr_code_url, printer_id, created_at)
+                            VALUES
+                                (@jobId, @name, @company, @participantNo, @qrCodeUrl, @printerId, @now);";
 
                 using var cmd = new MySqlCommand(sql, conn);
                 cmd.Parameters.AddWithValue("@jobId", pseId);
@@ -712,12 +896,12 @@ namespace High6
                 cmd.Parameters.AddWithValue("@printerId", printerId);
                 cmd.Parameters.AddWithValue("@now", DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"));
 
-                await cmd.ExecuteNonQueryAsync();
-                return true;
+                int rows = await cmd.ExecuteNonQueryAsync();
+                return rows > 0;
             }
             catch (Exception ex)
             {
-                Log("✗ DB save error: " + ex.Message);
+                Log($"✗ DB save error for job_id='{pseId}': {ex.Message}");
                 return false;
             }
         }

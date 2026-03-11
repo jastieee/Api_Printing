@@ -10,17 +10,16 @@ using MySql.Data.MySqlClient;
 namespace High6
 {
     /// <summary>
-    /// Initial setup form — lets the operator assign a physical ZPL printer
-    /// (detected from Windows/WMI) and a floor number to each printer slot
-    /// stored in the high6middleware.printers table.
-    /// 
+    /// Printer Setup — assign a physical ZPL printer (detected from Windows/WMI)
+    /// and a floor number to each printer slot stored in the high6middleware.printers table.
+    ///
+    /// The DB connection string is injected at construction time (no hardcoding).
     /// Open this form once per PC before starting the polling service.
     /// </summary>
     public class PrinterSetup : Form
     {
-        // ── Same connection string as Printer.cs ──────────────────
-        private const string DbConn =
-            "Server=localhost;Port=3306;Database=high6middleware;Uid=root;Pwd=;";
+        // ── Injected DB connection string ─────────────────────────
+        private readonly string _dbConn;
 
         // ── Controls ──────────────────────────────────────────────
         private DataGridView dgv;
@@ -31,19 +30,19 @@ namespace High6
         private Panel pnlTop;
         private Panel pnlBottom;
 
-        // Column name constants — keeps magic strings in one place
         private const string ColId = "col_id";
         private const string ColPrinterNo = "col_printer_number";
         private const string ColPrinterCode = "col_printer_code";
-        private const string ColPrinterName = "col_printer_name";   // ComboBox
+        private const string ColPrinterName = "col_printer_name";
         private const string ColFloor = "col_floor";
         private const string ColCreatedAt = "col_created_at";
 
-        // All ZPL printer names found on this PC (populated once on load / refresh)
         private List<string> _localPrinterNames = new List<string>();
 
-        public PrinterSetup()
+        // Accept the DB connection string from the parent form
+        public PrinterSetup(string dbConn)
         {
+            _dbConn = dbConn;
             BuildUI();
             this.Load += async (s, e) => await InitAsync();
         }
@@ -55,7 +54,7 @@ namespace High6
         {
             this.Text = "Printer Setup — Assign Printers & Floors";
             this.Size = new Size(860, 480);
-            this.StartPosition = FormStartPosition.CenterScreen;
+            this.StartPosition = FormStartPosition.CenterParent;
             this.FormBorderStyle = FormBorderStyle.FixedDialog;
             this.MaximizeBox = false;
             this.Font = new Font("Segoe UI", 9f);
@@ -97,7 +96,6 @@ namespace High6
             btnRefreshPrinters.Width = 160;
             btnSave.Width = 100;
             btnClose.Width = 100;
-            btnClose.Anchor = AnchorStyles.Right | AnchorStyles.Top;
 
             lblStatus = new Label
             {
@@ -113,7 +111,6 @@ namespace High6
             pnlBottom.Controls.Add(btnClose);
             pnlBottom.Controls.Add(lblStatus);
 
-            // Manual layout for bottom buttons
             btnRefreshPrinters.Location = new Point(12, 8);
             btnSave.Location = new Point(180, 8);
             btnClose.Location = new Point(288, 8);
@@ -162,14 +159,12 @@ namespace High6
         {
             dgv.Columns.Clear();
 
-            // Hidden: DB id
             dgv.Columns.Add(new DataGridViewTextBoxColumn
             {
                 Name = ColId,
                 Visible = false
             });
 
-            // Read-only: Printer No
             dgv.Columns.Add(new DataGridViewTextBoxColumn
             {
                 Name = ColPrinterNo,
@@ -177,11 +172,12 @@ namespace High6
                 ReadOnly = true,
                 Width = 80,
                 FillWeight = 10,
-                DefaultCellStyle = { Alignment = DataGridViewContentAlignment.MiddleCenter,
-                                     Font      = new Font("Segoe UI", 9f, FontStyle.Bold) }
+                DefaultCellStyle = {
+                    Alignment = DataGridViewContentAlignment.MiddleCenter,
+                    Font      = new Font("Segoe UI", 9f, FontStyle.Bold)
+                }
             });
 
-            // Read-only: Code
             dgv.Columns.Add(new DataGridViewTextBoxColumn
             {
                 Name = ColPrinterCode,
@@ -190,17 +186,14 @@ namespace High6
                 FillWeight = 15
             });
 
-            // ★ Editable ComboBox: assign a local ZPL printer
-            var cboCol = new DataGridViewComboBoxColumn
+            dgv.Columns.Add(new DataGridViewComboBoxColumn
             {
                 Name = ColPrinterName,
                 HeaderText = "Physical Printer (detected on this PC)",
                 FillWeight = 50,
                 DisplayStyle = DataGridViewComboBoxDisplayStyle.ComboBox
-            };
-            dgv.Columns.Add(cboCol);
+            });
 
-            // ★ Editable: floor
             dgv.Columns.Add(new DataGridViewTextBoxColumn
             {
                 Name = ColFloor,
@@ -209,7 +202,6 @@ namespace High6
                 DefaultCellStyle = { Alignment = DataGridViewContentAlignment.MiddleCenter }
             });
 
-            // Read-only: created_at
             dgv.Columns.Add(new DataGridViewTextBoxColumn
             {
                 Name = ColCreatedAt,
@@ -221,7 +213,7 @@ namespace High6
         }
 
         // ═══════════════════════════════════════════════════════════
-        // Initialisation — detect local printers + load DB rows
+        // Initialise
         // ═══════════════════════════════════════════════════════════
         private async Task InitAsync()
         {
@@ -229,10 +221,6 @@ namespace High6
             await RefreshLocalPrintersAsync(loadDbAfter: true);
         }
 
-        /// <summary>
-        /// Re-scans WMI for ZPL printers and rebuilds the ComboBox item list.
-        /// If loadDbAfter is true the DB rows are loaded afterwards.
-        /// </summary>
         private async Task RefreshLocalPrintersAsync(bool loadDbAfter = false)
         {
             btnRefreshPrinters.Enabled = false;
@@ -240,14 +228,12 @@ namespace High6
 
             _localPrinterNames = await Task.Run(() => GetLocalZplPrinterNames());
 
-            // Rebuild ComboBox column items
             var cboCol = (DataGridViewComboBoxColumn)dgv.Columns[ColPrinterName];
             cboCol.Items.Clear();
-            cboCol.Items.Add("");                           // empty = not assigned
+            cboCol.Items.Add("");
             foreach (var n in _localPrinterNames)
                 cboCol.Items.Add(n);
 
-            // Re-validate existing cells so they don't show an error if value is now valid
             foreach (DataGridViewRow row in dgv.Rows)
             {
                 var cell = (DataGridViewComboBoxCell)row.Cells[ColPrinterName];
@@ -255,7 +241,8 @@ namespace High6
                     cell.Value = "";
             }
 
-            SetStatus($"Found {_localPrinterNames.Count} ZPL printer(s) on this PC.", Color.FromArgb(39, 174, 96));
+            SetStatus($"Found {_localPrinterNames.Count} ZPL printer(s) on this PC.",
+                      Color.FromArgb(39, 174, 96));
             btnRefreshPrinters.Enabled = true;
 
             if (loadDbAfter)
@@ -271,7 +258,7 @@ namespace High6
             {
                 dgv.Rows.Clear();
 
-                using var conn = new MySqlConnection(DbConn);
+                using var conn = new MySqlConnection(_dbConn);
                 await conn.OpenAsync();
 
                 var sql = "SELECT id, printer_number, printer_code, printer_name, floor, created_at " +
@@ -286,23 +273,21 @@ namespace High6
                 {
                     string dbPrinterName = rdr.IsDBNull(3) ? "" : rdr.GetString(3);
 
-                    // Ensure the saved name exists in the dropdown (even if printer is
-                    // currently disconnected — show it greyed out by leaving it selectable)
                     if (!string.IsNullOrEmpty(dbPrinterName) && !cboCol.Items.Contains(dbPrinterName))
                         cboCol.Items.Add(dbPrinterName + "  ⚠ (not detected)");
 
                     dgv.Rows.Add(
-                        rdr.GetInt32(0),                                     // id
-                        rdr.GetByte(1),                                      // printer_number
-                        rdr.IsDBNull(2) ? "" : rdr.GetString(2),             // printer_code
-                        dbPrinterName,                                       // printer_name (combo)
-                        rdr.IsDBNull(4) ? "" : rdr.GetByte(4).ToString(),    // floor
-                        rdr.GetDateTime(5).ToString("yyyy-MM-dd HH:mm")      // created_at
+                        rdr.GetInt32(0),
+                        rdr.GetByte(1),
+                        rdr.IsDBNull(2) ? "" : rdr.GetString(2),
+                        dbPrinterName,
+                        rdr.IsDBNull(4) ? "" : rdr.GetByte(4).ToString(),
+                        rdr.GetDateTime(5).ToString("yyyy-MM-dd HH:mm")
                     );
                 }
 
-                SetStatus($"Loaded {dgv.Rows.Count} printer slot(s) from DB. " +
-                          $"Assign a physical printer and floor, then click 💾 Save.",
+                SetStatus($"Loaded {dgv.Rows.Count} printer slot(s). " +
+                          "Assign a physical printer and floor, then click 💾 Save.",
                           Color.FromArgb(30, 30, 46));
             }
             catch (Exception ex)
@@ -316,7 +301,6 @@ namespace High6
         // ═══════════════════════════════════════════════════════════
         private async Task SaveAsync()
         {
-            // Force end of any active edit
             dgv.CommitEdit(DataGridViewDataErrorContexts.Commit);
             dgv.EndEdit();
 
@@ -326,7 +310,7 @@ namespace High6
 
             try
             {
-                using var conn = new MySqlConnection(DbConn);
+                using var conn = new MySqlConnection(_dbConn);
                 await conn.OpenAsync();
 
                 foreach (DataGridViewRow row in dgv.Rows)
@@ -336,7 +320,6 @@ namespace High6
                     int id = Convert.ToInt32(row.Cells[ColId].Value);
                     string printerName = row.Cells[ColPrinterName].Value?.ToString()?.Trim() ?? "";
 
-                    // Strip the "⚠ (not detected)" suffix if present
                     if (printerName.Contains("⚠"))
                         printerName = printerName.Substring(0, printerName.IndexOf("⚠")).Trim();
 
@@ -393,7 +376,7 @@ namespace High6
         }
 
         // ═══════════════════════════════════════════════════════════
-        // WMI — get all ZPL printer names on this Windows PC
+        // WMI — get all ZPL printer names on this PC
         // ═══════════════════════════════════════════════════════════
         private List<string> GetLocalZplPrinterNames()
         {
@@ -441,8 +424,7 @@ namespace High6
         }
 
         private static Button MakeButton(string text, Color backColor)
-        {
-            return new Button
+            => new Button
             {
                 Text = text,
                 BackColor = backColor,
@@ -454,6 +436,5 @@ namespace High6
                 Cursor = Cursors.Hand,
                 FlatAppearance = { BorderSize = 0 }
             };
-        }
     }
 }

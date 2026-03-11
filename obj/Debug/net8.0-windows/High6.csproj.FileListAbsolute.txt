@@ -52,3 +52,4 @@ C:\Users\Windows\Documents\C#\High6\bin\Debug\net8.0-windows\System.CodeDom.dll
 C:\Users\Windows\Documents\C#\High6\bin\Debug\net8.0-windows\System.Management.dll
 C:\Users\Windows\Documents\C#\High6\bin\Debug\net8.0-windows\runtimes\win\lib\net8.0\System.Management.dll
 C:\Users\Windows\Documents\C#\High6\obj\Debug\net8.0-windows\High6.PrinterSetup.resources
+C:\Users\Windows\Documents\C#\High6\obj\Debug\net8.0-windows\High6.sourcelink.json

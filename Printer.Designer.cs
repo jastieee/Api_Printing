@@ -7,9 +7,7 @@
         protected override void Dispose(bool disposing)
         {
             if (disposing && (components != null))
-            {
                 components.Dispose();
-            }
             base.Dispose(disposing);
         }
 
@@ -22,9 +20,8 @@
             this.btnStart = new System.Windows.Forms.Button();
             this.btnPause = new System.Windows.Forms.Button();
             this.btnEnd = new System.Windows.Forms.Button();
-            this.btnTestConnection = new System.Windows.Forms.Button();
-            this.btnDetectPrinters = new System.Windows.Forms.Button();
-            this.btnSetup = new System.Windows.Forms.Button();   // ← NEW
+            this.btnSetupDb = new System.Windows.Forms.Button();
+            this.btnSetupPrinters = new System.Windows.Forms.Button();
             this.txtStatus = new System.Windows.Forms.TextBox();
             this.lblStatus = new System.Windows.Forms.Label();
             this.lblConnection = new System.Windows.Forms.Label();
@@ -43,9 +40,8 @@
 
             // ── pnlHeader ─────────────────────────────────────────
             this.pnlHeader.BackColor = System.Drawing.Color.FromArgb(30, 39, 46);
-            this.pnlHeader.Location = new System.Drawing.Point(0, 0);
-            this.pnlHeader.Size = new System.Drawing.Size(800, 56);
             this.pnlHeader.Dock = System.Windows.Forms.DockStyle.Top;
+            this.pnlHeader.Size = new System.Drawing.Size(860, 56);
             this.pnlHeader.Controls.Add(this.lblTitle);
 
             // ── lblTitle ──────────────────────────────────────────
@@ -57,8 +53,6 @@
             this.lblTitle.AutoSize = false;
 
             // ── pnlButtons ────────────────────────────────────────
-            // Height increased by 10 to comfortably fit two rows if needed,
-            // but all buttons still fit in one row at the wider 860px form.
             this.pnlButtons.BackColor = System.Drawing.Color.FromArgb(245, 246, 250);
             this.pnlButtons.BorderStyle = System.Windows.Forms.BorderStyle.None;
             this.pnlButtons.Location = new System.Drawing.Point(12, 68);
@@ -66,8 +60,8 @@
             this.pnlButtons.Controls.Add(this.btnStart);
             this.pnlButtons.Controls.Add(this.btnPause);
             this.pnlButtons.Controls.Add(this.btnEnd);
-            this.pnlButtons.Controls.Add(this.btnDetectPrinters);
-            this.pnlButtons.Controls.Add(this.btnSetup);            // ← NEW
+            this.pnlButtons.Controls.Add(this.btnSetupDb);
+            this.pnlButtons.Controls.Add(this.btnSetupPrinters);
 
             // ── btnStart ──────────────────────────────────────────
             this.btnStart.Text = "▶  Start";
@@ -107,29 +101,29 @@
             this.btnEnd.Enabled = false;
             this.btnEnd.Click += new System.EventHandler(this.btnEnd_Click);
 
-            // ── btnDetectPrinters ─────────────────────────────────
-            this.btnDetectPrinters.Text = "🔍  Detect Printers";
-            this.btnDetectPrinters.Location = new System.Drawing.Point(390, 10);
-            this.btnDetectPrinters.Size = new System.Drawing.Size(160, 40);
-            this.btnDetectPrinters.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
-            this.btnDetectPrinters.BackColor = System.Drawing.Color.FromArgb(52, 152, 219);
-            this.btnDetectPrinters.ForeColor = System.Drawing.Color.White;
-            this.btnDetectPrinters.Font = new System.Drawing.Font("Segoe UI", 10F, System.Drawing.FontStyle.Bold);
-            this.btnDetectPrinters.Cursor = System.Windows.Forms.Cursors.Hand;
-            this.btnDetectPrinters.FlatAppearance.BorderSize = 0;
-            this.btnDetectPrinters.Click += new System.EventHandler(this.btnDetectPrinters_Click);
+            // ── btnSetupDb ────────────────────────────────────────
+            this.btnSetupDb.Text = "⚙  Setup DB";
+            this.btnSetupDb.Location = new System.Drawing.Point(400, 10);
+            this.btnSetupDb.Size = new System.Drawing.Size(130, 40);
+            this.btnSetupDb.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
+            this.btnSetupDb.BackColor = System.Drawing.Color.FromArgb(44, 62, 80);
+            this.btnSetupDb.ForeColor = System.Drawing.Color.White;
+            this.btnSetupDb.Font = new System.Drawing.Font("Segoe UI", 10F, System.Drawing.FontStyle.Bold);
+            this.btnSetupDb.Cursor = System.Windows.Forms.Cursors.Hand;
+            this.btnSetupDb.FlatAppearance.BorderSize = 0;
+            this.btnSetupDb.Click += new System.EventHandler(this.btnSetupDb_Click);
 
-            // ── btnSetup  (NEW) ───────────────────────────────────
-            this.btnSetup.Text = "⚙  Setup";
-            this.btnSetup.Location = new System.Drawing.Point(560, 10);
-            this.btnSetup.Size = new System.Drawing.Size(120, 40);
-            this.btnSetup.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
-            this.btnSetup.BackColor = System.Drawing.Color.FromArgb(142, 68, 173);
-            this.btnSetup.ForeColor = System.Drawing.Color.White;
-            this.btnSetup.Font = new System.Drawing.Font("Segoe UI", 10F, System.Drawing.FontStyle.Bold);
-            this.btnSetup.Cursor = System.Windows.Forms.Cursors.Hand;
-            this.btnSetup.FlatAppearance.BorderSize = 0;
-            this.btnSetup.Click += new System.EventHandler(this.btnSetup_Click);
+            // ── btnSetupPrinters ──────────────────────────────────
+            this.btnSetupPrinters.Text = "⚙  Setup Printers";
+            this.btnSetupPrinters.Location = new System.Drawing.Point(542, 10);
+            this.btnSetupPrinters.Size = new System.Drawing.Size(160, 40);
+            this.btnSetupPrinters.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
+            this.btnSetupPrinters.BackColor = System.Drawing.Color.FromArgb(142, 68, 173);
+            this.btnSetupPrinters.ForeColor = System.Drawing.Color.White;
+            this.btnSetupPrinters.Font = new System.Drawing.Font("Segoe UI", 10F, System.Drawing.FontStyle.Bold);
+            this.btnSetupPrinters.Cursor = System.Windows.Forms.Cursors.Hand;
+            this.btnSetupPrinters.FlatAppearance.BorderSize = 0;
+            this.btnSetupPrinters.Click += new System.EventHandler(this.btnSetupPrinters_Click);
 
             // ── pnlConnection ─────────────────────────────────────
             this.pnlConnection.BackColor = System.Drawing.Color.FromArgb(245, 246, 250);
@@ -138,7 +132,6 @@
             this.pnlConnection.Size = new System.Drawing.Size(836, 50);
             this.pnlConnection.Controls.Add(this.lblConnectionDot);
             this.pnlConnection.Controls.Add(this.lblConnection);
-            this.pnlConnection.Controls.Add(this.btnTestConnection);
 
             // ── lblConnectionDot ──────────────────────────────────
             this.lblConnectionDot.Text = "●";
@@ -148,23 +141,11 @@
             this.lblConnectionDot.Font = new System.Drawing.Font("Segoe UI", 13F);
 
             // ── lblConnection ─────────────────────────────────────
-            this.lblConnection.Text = "Not tested";
+            this.lblConnection.Text = "Not started — click ▶ Start to begin";
             this.lblConnection.Location = new System.Drawing.Point(26, 16);
-            this.lblConnection.Size = new System.Drawing.Size(400, 20);
+            this.lblConnection.Size = new System.Drawing.Size(700, 20);
             this.lblConnection.ForeColor = System.Drawing.Color.FromArgb(127, 140, 141);
             this.lblConnection.Font = new System.Drawing.Font("Segoe UI", 9F);
-
-            // ── btnTestConnection ─────────────────────────────────
-            this.btnTestConnection.Text = "Test Connection";
-            this.btnTestConnection.Location = new System.Drawing.Point(696, 8);
-            this.btnTestConnection.Size = new System.Drawing.Size(140, 34);
-            this.btnTestConnection.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
-            this.btnTestConnection.BackColor = System.Drawing.Color.FromArgb(44, 62, 80);
-            this.btnTestConnection.ForeColor = System.Drawing.Color.White;
-            this.btnTestConnection.Font = new System.Drawing.Font("Segoe UI", 9F);
-            this.btnTestConnection.Cursor = System.Windows.Forms.Cursors.Hand;
-            this.btnTestConnection.FlatAppearance.BorderSize = 0;
-            this.btnTestConnection.Click += new System.EventHandler(this.btnTestConnection_Click);
 
             // ── pnlLogHeader ──────────────────────────────────────
             this.pnlLogHeader.BackColor = System.Drawing.Color.FromArgb(236, 240, 241);
@@ -193,13 +174,14 @@
 
             // ── Form ──────────────────────────────────────────────
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.ClientSize = new System.Drawing.Size(860, 530);   // widened by 60px
+            this.ClientSize = new System.Drawing.Size(860, 530);
             this.BackColor = System.Drawing.Color.FromArgb(245, 246, 250);
             this.Text = "High6 Printer Service";
             this.Font = new System.Drawing.Font("Segoe UI", 9F);
             this.FormBorderStyle = System.Windows.Forms.FormBorderStyle.FixedSingle;
             this.MaximizeBox = false;
             this.StartPosition = System.Windows.Forms.FormStartPosition.CenterScreen;
+            this.Load += new System.EventHandler(this.Printer_Load);
 
             this.Controls.Add(this.pnlHeader);
             this.Controls.Add(this.pnlButtons);
@@ -220,9 +202,8 @@
         private System.Windows.Forms.Button btnStart;
         private System.Windows.Forms.Button btnPause;
         private System.Windows.Forms.Button btnEnd;
-        private System.Windows.Forms.Button btnTestConnection;
-        private System.Windows.Forms.Button btnDetectPrinters;
-        private System.Windows.Forms.Button btnSetup;              // ← NEW
+        private System.Windows.Forms.Button btnSetupDb;
+        private System.Windows.Forms.Button btnSetupPrinters;
         private System.Windows.Forms.TextBox txtStatus;
         private System.Windows.Forms.Label lblStatus;
         private System.Windows.Forms.Label lblConnection;
