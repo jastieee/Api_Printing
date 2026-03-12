@@ -11,7 +11,7 @@
       "RelativeMoniker": "D:0:0:{7C1D0C36-7E75-4C2D-947F-0047164714DA}|High6.csproj|solutionrelative:printer.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}|Form"
     },
     {
-      "AbsoluteMoniker": "D:0:0:{7C1D0C36-7E75-4C2D-947F-0047164714DA}|High6.csproj|c:\\users\\windows\\documents\\c#\\high6\\dbsetup.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}|Form",
+      "AbsoluteMoniker": "D:0:0:{7C1D0C36-7E75-4C2D-947F-0047164714DA}|High6.csproj|C:\\Users\\Windows\\Documents\\C#\\High6\\dbsetup.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}|Form",
       "RelativeMoniker": "D:0:0:{7C1D0C36-7E75-4C2D-947F-0047164714DA}|High6.csproj|solutionrelative:dbsetup.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}|Form"
     },
     {
@@ -54,7 +54,7 @@
       "DocumentGroups": [
         {
           "DockedWidth": 200,
-          "SelectedChildIndex": 5,
+          "SelectedChildIndex": 4,
           "Children": [
             {
               "$type": "Bookmark",
@@ -78,20 +78,7 @@
               "RelativeToolTip": "Printer.Designer.cs",
               "ViewState": "AgIAAAAAAAAAAAAAAAAAANgAAAABAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2026-02-25T02:58:22.48Z",
-              "EditorCaption": ""
-            },
-            {
-              "$type": "Document",
-              "DocumentIndex": 1,
-              "Title": "Printer.cs [Design]",
-              "DocumentMoniker": "C:\\Users\\Windows\\Documents\\C#\\High6\\Printer.cs",
-              "RelativeDocumentMoniker": "Printer.cs",
-              "ToolTip": "C:\\Users\\Windows\\Documents\\C#\\High6\\Printer.cs [Design]",
-              "RelativeToolTip": "Printer.cs [Design]",
-              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2026-02-25T03:44:02.74Z",
-              "EditorCaption": " [Design]"
+              "WhenOpened": "2026-02-25T02:58:22.48Z"
             },
             {
               "$type": "Document",
@@ -101,30 +88,10 @@
               "RelativeDocumentMoniker": "Printer.cs",
               "ToolTip": "C:\\Users\\Windows\\Documents\\C#\\High6\\Printer.cs",
               "RelativeToolTip": "Printer.cs",
-              "ViewState": "AgIAAMEBAAAAAAAAAAAiwNABAAAAAAAAAAAAAA==",
+              "ViewState": "AgIAACUDAAAAAAAAAAAiwDYDAABCAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
               "WhenOpened": "2026-02-25T03:01:01.22Z",
               "EditorCaption": ""
-            },
-            {
-              "$type": "Bookmark",
-              "Name": "ST:0:0:{34e76e81-ee4a-11d0-ae2e-00a0c90fffc3}"
-            },
-            {
-              "$type": "Bookmark",
-              "Name": "ST:0:0:{e5c86464-96be-4d7c-9a8b-abcb3bbf5f92}"
-            },
-            {
-              "$type": "Document",
-              "DocumentIndex": 2,
-              "Title": "DBSetup.cs [Design]",
-              "DocumentMoniker": "C:\\Users\\Windows\\Documents\\C#\\High6\\DBSetup.cs",
-              "RelativeDocumentMoniker": "DBSetup.cs",
-              "ToolTip": "C:\\Users\\Windows\\Documents\\C#\\High6\\DBSetup.cs [Design]",
-              "RelativeToolTip": "DBSetup.cs [Design]",
-              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2026-03-11T07:30:15.478Z",
-              "EditorCaption": " [Design]"
             },
             {
               "$type": "Document",
@@ -149,12 +116,7 @@
               "RelativeToolTip": "AppSettings.json",
               "ViewState": "AgIAAAAAAAAAAAAAAAAAAAcAAAAxAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.001642|",
-              "WhenOpened": "2026-03-11T02:34:40.408Z",
-              "EditorCaption": ""
-            },
-            {
-              "$type": "Bookmark",
-              "Name": "ST:0:0:{0ad07096-bba9-4900-a651-0598d26f6d24}"
+              "WhenOpened": "2026-03-11T02:34:40.408Z"
             },
             {
               "$type": "Document",
@@ -179,8 +141,7 @@
               "RelativeToolTip": "RawPrinterHelper.cs",
               "ViewState": "AgIAAB8AAAAAAAAAAAAcwCcAAAAKAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2026-02-25T06:15:02.71Z",
-              "EditorCaption": ""
+              "WhenOpened": "2026-02-25T06:15:02.71Z"
             },
             {
               "$type": "Document",
@@ -192,8 +153,7 @@
               "RelativeToolTip": "Program.cs",
               "ViewState": "AgIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2026-03-11T02:22:56.721Z",
-              "EditorCaption": ""
+              "WhenOpened": "2026-03-11T02:22:56.721Z"
             },
             {
               "$type": "Document",
@@ -205,8 +165,41 @@
               "RelativeToolTip": "High6.csproj",
               "ViewState": "AgIAAAAAAAAAAAAAAAAAABAAAAAKAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000758|",
-              "WhenOpened": "2026-02-25T06:14:55.779Z",
-              "EditorCaption": ""
+              "WhenOpened": "2026-02-25T06:14:55.779Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 1,
+              "Title": "Printer.cs [Design]",
+              "DocumentMoniker": "C:\\Users\\Windows\\Documents\\C#\\High6\\Printer.cs",
+              "RelativeDocumentMoniker": "Printer.cs",
+              "ToolTip": "C:\\Users\\Windows\\Documents\\C#\\High6\\Printer.cs [Design]",
+              "RelativeToolTip": "Printer.cs [Design]",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-02-25T03:44:02.74Z"
+            },
+            {
+              "$type": "Bookmark",
+              "Name": "ST:0:0:{34e76e81-ee4a-11d0-ae2e-00a0c90fffc3}"
+            },
+            {
+              "$type": "Bookmark",
+              "Name": "ST:0:0:{e5c86464-96be-4d7c-9a8b-abcb3bbf5f92}"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 2,
+              "Title": "DBSetup.cs [Design]",
+              "DocumentMoniker": "C:\\Users\\Windows\\Documents\\C#\\High6\\DBSetup.cs",
+              "RelativeDocumentMoniker": "DBSetup.cs",
+              "ToolTip": "C:\\Users\\Windows\\Documents\\C#\\High6\\DBSetup.cs [Design]",
+              "RelativeToolTip": "DBSetup.cs [Design]",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-03-11T07:30:15.478Z"
+            },
+            {
+              "$type": "Bookmark",
+              "Name": "ST:0:0:{0ad07096-bba9-4900-a651-0598d26f6d24}"
             },
             {
               "$type": "Document",
@@ -217,8 +210,7 @@
               "ToolTip": "C:\\Users\\Windows\\Documents\\C#\\High6\\PrinterSetup.cs [Design]",
               "RelativeToolTip": "PrinterSetup.cs [Design]",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2026-02-25T07:34:38.354Z",
-              "EditorCaption": " [Design]"
+              "WhenOpened": "2026-02-25T07:34:38.354Z"
             }
           ]
         }

@@ -538,122 +538,264 @@ namespace High6
         //}
 
         //update wrap layout without overlapping text
+
+        // update layout with wrapping
+        //private string BuildZplLabel(string name, string company, string participantNo, string qrCodeUrl)
+        //{
+        //    int labelWidth = 609;
+        //    int labelHeight = 406;
+        //    int boxLeft = 5;
+        //    int boxTop = 5;
+        //    int boxW = 597;
+        //    int boxH = 394;
+        //    int borderThk = 8;
+
+        //    int contentWidth = 540;
+        //    int contentX = (labelWidth - contentWidth) / 2;
+
+        //    // ── Font sizes ────────────────────────────────────────────
+        //    // Name: scale down if very long
+        //    int nameFont;
+        //    if (name.Length <= 14) nameFont = 64;
+        //    else if (name.Length <= 20) nameFont = 54;
+        //    else if (name.Length <= 28) nameFont = 44;
+        //    else nameFont = 36;
+
+        //    // Company: scale down if very long
+        //    int compFont;
+        //    if (company.Length <= 18) compFont = 38;
+        //    else if (company.Length <= 26) compFont = 32;
+        //    else if (company.Length <= 36) compFont = 26;
+        //    else compFont = 22;
+
+        //    // ── Estimate chars per line at each font size ─────────────
+        //    // At 203dpi, ZPL A0 font: approx contentWidth / (fontSize * 0.6)
+        //    int nameCharsPerLine = (int)(contentWidth / (nameFont * 0.60));
+        //    int compCharsPerLine = (int)(contentWidth / (compFont * 0.60));
+
+        //    int nameLines = name.Length <= nameCharsPerLine ? 1 : 2;
+        //    int compLines = company.Length <= compCharsPerLine ? 1 : 2;
+
+        //    int nameLineGap = 8;
+        //    int compLineGap = 6;
+
+        //    int nameBlockH = nameLines == 1 ? nameFont : nameFont * 2 + nameLineGap;
+        //    int compBlockH = compLines == 1 ? compFont : compFont * 2 + compLineGap;
+
+        //    // ── QR size ───────────────────────────────────────────────
+        //    int qrSize = 120;
+
+        //    // ── Gaps between sections ─────────────────────────────────
+        //    int gapNameComp = 16;
+        //    int gapCompQr = 18;
+        //    int topPad = 14;
+        //    int bottomPad = 14;
+
+        //    // ── Total content height ──────────────────────────────────
+        //    int totalContent = topPad + nameBlockH + gapNameComp + compBlockH + gapCompQr + qrSize + bottomPad;
+
+        //    // Compress gaps if overflow
+        //    int available = boxH - borderThk * 2;
+        //    if (totalContent > available)
+        //    {
+        //        gapNameComp = 8;
+        //        gapCompQr = 10;
+        //        topPad = 8;
+        //        bottomPad = 8;
+        //        totalContent = topPad + nameBlockH + gapNameComp + compBlockH + gapCompQr + qrSize + bottomPad;
+        //    }
+
+        //    // ── Vertically center the whole block inside the box ─────
+        //    int innerTop = boxTop + borderThk;
+        //    int startY = innerTop + (available - totalContent) / 2;
+        //    if (startY < innerTop + 4) startY = innerTop + 4;
+
+        //    int nameY = startY + topPad;
+        //    int compY = nameY + nameBlockH + gapNameComp;
+        //    int qrY = compY + compBlockH + gapCompQr;
+        //    int qrX = (labelWidth - qrSize) / 2;
+
+        //    string qrZpl = BuildQrSection(qrCodeUrl, participantNo, qrX, qrY, qrSize);
+
+        //    var zpl = new StringBuilder();
+
+        //    // Config block
+        //    zpl.AppendLine("^XA");
+        //    zpl.AppendLine("^PW609");
+        //    zpl.AppendLine("^LL406");
+        //    zpl.AppendLine("^CI28");
+
+        //    // Single border box
+        //    zpl.AppendLine($"^FO{boxLeft},{boxTop}^GB{boxW},{boxH},{borderThk}^FS");
+
+        //    // ── NAME — centered, bold (drawn twice +1px), wraps via ^FB ──
+        //    // Line 1
+        //    zpl.AppendLine($"^FO{contentX},{nameY}^A0N,{nameFont},{nameFont}^FB{contentWidth},1,0,C^FD{EscapeZpl(nameLines == 1 ? name : GetLine(name, nameCharsPerLine, 1))}^FS");
+        //    zpl.AppendLine($"^FO{contentX + 1},{nameY}^A0N,{nameFont},{nameFont}^FB{contentWidth},1,0,C^FD{EscapeZpl(nameLines == 1 ? name : GetLine(name, nameCharsPerLine, 1))}^FS");
+
+        //    // Line 2 (if wrapped)
+        //    if (nameLines == 2)
+        //    {
+        //        int name2Y = nameY + nameFont + nameLineGap;
+        //        string nameLine2 = GetLine(name, nameCharsPerLine, 2);
+        //        zpl.AppendLine($"^FO{contentX},{name2Y}^A0N,{nameFont},{nameFont}^FB{contentWidth},1,0,C^FD{EscapeZpl(nameLine2)}^FS");
+        //        zpl.AppendLine($"^FO{contentX + 1},{name2Y}^A0N,{nameFont},{nameFont}^FB{contentWidth},1,0,C^FD{EscapeZpl(nameLine2)}^FS");
+        //    }
+
+        //    // ── COMPANY — centered, wraps via ^FB ────────────────────
+        //    if (!string.IsNullOrEmpty(company))
+        //    {
+        //        zpl.AppendLine($"^FO{contentX},{compY}^A0N,{compFont},{compFont}^FB{contentWidth},1,0,C^FD{EscapeZpl(compLines == 1 ? company : GetLine(company, compCharsPerLine, 1))}^FS");
+
+        //        if (compLines == 2)
+        //        {
+        //            int comp2Y = compY + compFont + compLineGap;
+        //            string compLine2 = GetLine(company, compCharsPerLine, 2);
+        //            zpl.AppendLine($"^FO{contentX},{comp2Y}^A0N,{compFont},{compFont}^FB{contentWidth},1,0,C^FD{EscapeZpl(compLine2)}^FS");
+        //        }
+        //    }
+
+        //    // ── QR code ───────────────────────────────────────────────
+        //    zpl.AppendLine(qrZpl);
+
+        //    zpl.AppendLine("^PQ1,0,1,Y");
+        //    zpl.AppendLine("^XZ");
+
+        //    return zpl.ToString();
+        //}
+
         private string BuildZplLabel(string name, string company, string participantNo, string qrCodeUrl)
         {
             int labelWidth = 609;
-            int labelHeight = 406;
             int boxLeft = 5;
             int boxTop = 5;
             int boxW = 597;
             int boxH = 394;
             int borderThk = 8;
 
-            int contentWidth = 540;
-            int contentX = (labelWidth - contentWidth) / 2;
+            int innerLeft = boxLeft + borderThk;
+            int innerTop = boxTop + borderThk;
+            int innerRight = boxLeft + boxW - borderThk;
+            int innerBottom = boxTop + boxH - borderThk;
+            int innerW = innerRight - innerLeft;   // 581
+            int innerH = innerBottom - innerTop;    // 378
 
-            // ── Font sizes ────────────────────────────────────────────
-            // Name: scale down if very long
+            int padX = 14;   // horizontal padding from inner edge
+            int padY = 10;   // vertical padding from inner edge
+
+            // ═════════════════════════════════════════════════════════
+            // NAME SECTION — full width, large font, up to 2 lines
+            // ═════════════════════════════════════════════════════════
             int nameFont;
-            if (name.Length <= 14) nameFont = 64;
-            else if (name.Length <= 20) nameFont = 54;
-            else if (name.Length <= 28) nameFont = 44;
-            else nameFont = 36;
+            if (name.Length <= 12) nameFont = 70;
+            else if (name.Length <= 18) nameFont = 60;
+            else if (name.Length <= 26) nameFont = 50;
+            else nameFont = 42;
 
-            // Company: scale down if very long
-            int compFont;
-            if (company.Length <= 18) compFont = 38;
-            else if (company.Length <= 26) compFont = 32;
-            else if (company.Length <= 36) compFont = 26;
-            else compFont = 22;
-
-            // ── Estimate chars per line at each font size ─────────────
-            // At 203dpi, ZPL A0 font: approx contentWidth / (fontSize * 0.6)
-            int nameCharsPerLine = (int)(contentWidth / (nameFont * 0.60));
-            int compCharsPerLine = (int)(contentWidth / (compFont * 0.60));
+            int nameContentW = innerW - padX * 2;
+            int nameCharsPerLine = (int)(nameContentW / (nameFont * 0.60));
 
             int nameLines = name.Length <= nameCharsPerLine ? 1 : 2;
-            int compLines = company.Length <= compCharsPerLine ? 1 : 2;
-
             int nameLineGap = 8;
-            int compLineGap = 6;
-
             int nameBlockH = nameLines == 1 ? nameFont : nameFont * 2 + nameLineGap;
-            int compBlockH = compLines == 1 ? compFont : compFont * 2 + compLineGap;
 
-            // ── QR size ───────────────────────────────────────────────
-            int qrSize = 120;
+            string nameLine1 = GetLine(name, nameCharsPerLine, 1);
+            string nameLine2 = nameLines == 2 ? GetLine(name, nameCharsPerLine, 2) : "";
 
-            // ── Gaps between sections ─────────────────────────────────
-            int gapNameComp = 16;
-            int gapCompQr = 18;
-            int topPad = 14;
-            int bottomPad = 14;
+            // ═════════════════════════════════════════════════════════
+            // BOTTOM SECTION — divides remaining height after name
+            // ═════════════════════════════════════════════════════════
+            int gapNameBottom = 16;   // gap between name block and bottom section
 
-            // ── Total content height ──────────────────────────────────
-            int totalContent = topPad + nameBlockH + gapNameComp + compBlockH + gapCompQr + qrSize + bottomPad;
+            // QR size — fill most of the remaining height
+            int bottomH = innerH - padY - nameBlockH - gapNameBottom - padY;
+            int qrSize = Math.Min(bottomH, 200);   // cap at 200 dots
+            if (qrSize < 80) qrSize = 80;            // minimum readable size
 
-            // Compress gaps if overflow
-            int available = boxH - borderThk * 2;
-            if (totalContent > available)
-            {
-                gapNameComp = 8;
-                gapCompQr = 10;
-                topPad = 8;
-                bottomPad = 8;
-                totalContent = topPad + nameBlockH + gapNameComp + compBlockH + gapCompQr + qrSize + bottomPad;
-            }
+            // Bottom section starts at:
+            int bottomY = innerTop + padY + nameBlockH + gapNameBottom;
 
-            // ── Vertically center the whole block inside the box ─────
-            int innerTop = boxTop + borderThk;
-            int startY = innerTop + (available - totalContent) / 2;
-            if (startY < innerTop + 4) startY = innerTop + 4;
+            // QR — right side, vertically centered in bottom section
+            int qrPanelW = qrSize + padX * 2;
+            int qrX = innerRight - padX - qrSize;
+            int qrY = bottomY + (bottomH - qrSize) / 2;
+            if (qrY < bottomY) qrY = bottomY;
 
-            int nameY = startY + topPad;
-            int compY = nameY + nameBlockH + gapNameComp;
-            int qrY = compY + compBlockH + gapCompQr;
-            int qrX = (labelWidth - qrSize) / 2;
+            // ═════════════════════════════════════════════════════════
+            // COMPANY — left of QR, up to 3 lines
+            // ═════════════════════════════════════════════════════════
+            int compAreaX = innerLeft + padX;
+            int compAreaW = innerW - qrPanelW - padX * 2 - 10;   // 10 = gap between text and QR
+
+            int compFont;
+            if (company.Length <= 12) compFont = 40;
+            else if (company.Length <= 20) compFont = 34;
+            else if (company.Length <= 30) compFont = 28;
+            else compFont = 24;
+
+            int compCharsPerLine = (int)(compAreaW / (compFont * 0.60));
+            int compLineGap = 8;
+
+            // Split into up to 3 lines
+            var compLinesList = SplitIntoLines(company, compCharsPerLine, 3);
+            int compLines = compLinesList.Count;
+            int compBlockH = compLines * compFont + (compLines - 1) * compLineGap;
+
+            // Vertically center company text within bottom section (same as QR)
+            int compY = bottomY + (bottomH - compBlockH) / 2;
+            if (compY < bottomY) compY = bottomY;
+
+            // ═════════════════════════════════════════════════════════
+            // DIVIDER LINE — between name and bottom section
+            // ═════════════════════════════════════════════════════════
+            int dividerY = innerTop + padY + nameBlockH + gapNameBottom / 2;
+
+            // ═════════════════════════════════════════════════════════
+            // NAME Y — vertically centered in name section
+            // ═════════════════════════════════════════════════════════
+            int nameSectionH = nameBlockH + gapNameBottom;
+            int nameY = innerTop + padY + (nameSectionH - nameBlockH) / 2;
+            int nameContentX = innerLeft + padX;
+            int name2Y = nameY + nameFont + nameLineGap;
 
             string qrZpl = BuildQrSection(qrCodeUrl, participantNo, qrX, qrY, qrSize);
 
+            // ═════════════════════════════════════════════════════════
+            // BUILD ZPL
+            // ═════════════════════════════════════════════════════════
             var zpl = new StringBuilder();
 
-            // Config block
             zpl.AppendLine("^XA");
             zpl.AppendLine("^PW609");
             zpl.AppendLine("^LL406");
             zpl.AppendLine("^CI28");
 
-            // Single border box
+            // Outer border
             zpl.AppendLine($"^FO{boxLeft},{boxTop}^GB{boxW},{boxH},{borderThk}^FS");
 
-            // ── NAME — centered, bold (drawn twice +1px), wraps via ^FB ──
-            // Line 1
-            zpl.AppendLine($"^FO{contentX},{nameY}^A0N,{nameFont},{nameFont}^FB{contentWidth},1,0,C^FD{EscapeZpl(nameLines == 1 ? name : GetLine(name, nameCharsPerLine, 1))}^FS");
-            zpl.AppendLine($"^FO{contentX + 1},{nameY}^A0N,{nameFont},{nameFont}^FB{contentWidth},1,0,C^FD{EscapeZpl(nameLines == 1 ? name : GetLine(name, nameCharsPerLine, 1))}^FS");
+            // Divider line (thin, full width inside box)
+            zpl.AppendLine($"^FO{innerLeft},{dividerY}^GB{innerW},2,2^FS");
 
-            // Line 2 (if wrapped)
+            // ── NAME (bold = drawn twice +1px offset) ────────────────
+            zpl.AppendLine($"^FO{nameContentX},{nameY}^A0N,{nameFont},{nameFont}^FB{nameContentW},1,0,C^FD{EscapeZpl(nameLine1)}^FS");
+            zpl.AppendLine($"^FO{nameContentX + 1},{nameY}^A0N,{nameFont},{nameFont}^FB{nameContentW},1,0,C^FD{EscapeZpl(nameLine1)}^FS");
             if (nameLines == 2)
             {
-                int name2Y = nameY + nameFont + nameLineGap;
-                string nameLine2 = GetLine(name, nameCharsPerLine, 2);
-                zpl.AppendLine($"^FO{contentX},{name2Y}^A0N,{nameFont},{nameFont}^FB{contentWidth},1,0,C^FD{EscapeZpl(nameLine2)}^FS");
-                zpl.AppendLine($"^FO{contentX + 1},{name2Y}^A0N,{nameFont},{nameFont}^FB{contentWidth},1,0,C^FD{EscapeZpl(nameLine2)}^FS");
+                zpl.AppendLine($"^FO{nameContentX},{name2Y}^A0N,{nameFont},{nameFont}^FB{nameContentW},1,0,C^FD{EscapeZpl(nameLine2)}^FS");
+                zpl.AppendLine($"^FO{nameContentX + 1},{name2Y}^A0N,{nameFont},{nameFont}^FB{nameContentW},1,0,C^FD{EscapeZpl(nameLine2)}^FS");
             }
 
-            // ── COMPANY — centered, wraps via ^FB ────────────────────
+            // ── COMPANY (left panel, up to 3 lines) ──────────────────
             if (!string.IsNullOrEmpty(company))
             {
-                zpl.AppendLine($"^FO{contentX},{compY}^A0N,{compFont},{compFont}^FB{contentWidth},1,0,C^FD{EscapeZpl(compLines == 1 ? company : GetLine(company, compCharsPerLine, 1))}^FS");
-
-                if (compLines == 2)
+                for (int i = 0; i < compLinesList.Count; i++)
                 {
-                    int comp2Y = compY + compFont + compLineGap;
-                    string compLine2 = GetLine(company, compCharsPerLine, 2);
-                    zpl.AppendLine($"^FO{contentX},{comp2Y}^A0N,{compFont},{compFont}^FB{contentWidth},1,0,C^FD{EscapeZpl(compLine2)}^FS");
+                    int lineY = compY + i * (compFont + compLineGap);
+                    zpl.AppendLine($"^FO{compAreaX},{lineY}^A0N,{compFont},{compFont}^FB{compAreaW},1,0,L^FD{EscapeZpl(compLinesList[i])}^FS");
                 }
             }
 
-            // ── QR code ───────────────────────────────────────────────
+            // ── QR (right panel) ─────────────────────────────────────
             zpl.AppendLine(qrZpl);
 
             zpl.AppendLine("^PQ1,0,1,Y");
@@ -662,7 +804,42 @@ namespace High6
             return zpl.ToString();
         }
 
+        // ── Split text into up to maxLines word-wrapped lines ─────────────
+        private List<string> SplitIntoLines(string text, int charsPerLine, int maxLines)
+        {
+            var lines = new List<string>();
+            string remaining = text.Trim();
+
+            for (int i = 0; i < maxLines; i++)
+            {
+                if (remaining.Length == 0) break;
+
+                if (remaining.Length <= charsPerLine || i == maxLines - 1)
+                {
+                    lines.Add(remaining);
+                    break;
+                }
+
+                // Find best split point at or before charsPerLine
+                int splitPos = charsPerLine;
+                for (int j = charsPerLine; j >= 0; j--)
+                {
+                    if (j < remaining.Length && remaining[j] == ' ')
+                    {
+                        splitPos = j;
+                        break;
+                    }
+                }
+
+                lines.Add(remaining.Substring(0, splitPos).Trim());
+                remaining = remaining.Substring(splitPos).Trim();
+            }
+
+            return lines;
+        }
+
         // ── Splits text into word-wrapped lines, returns line N (1-based) ──
+
         private string GetLine(string text, int charsPerLine, int lineNumber)
         {
             if (text.Length <= charsPerLine)
