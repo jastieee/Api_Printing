@@ -126,6 +126,16 @@ namespace High6
         }
 
         // ══════════════════════════════════════════════════════════
+        // Registration Button — open PrinterManual form
+        // ══════════════════════════════════════════════════════════
+
+        private void btnManual_Click(object sender, EventArgs e)
+        {
+            using var manual = new PrintManual(_dbConn);
+            manual.ShowDialog(this);
+        }
+
+        // ══════════════════════════════════════════════════════════
         // HMAC-SHA256 Signature  (body + timestamp, GET body = "")
         // ══════════════════════════════════════════════════════════
         private string GeneratePseSignature(string body, long timestamp)
@@ -251,6 +261,7 @@ namespace High6
                 return false;
             }
         }
+
 
         // ── Test DB ───────────────────────────────────────────────
         private async Task<bool> TestDbConnectionAsync()
@@ -666,136 +677,98 @@ namespace High6
 
         private string BuildZplLabel(string name, string company, string participantNo, string qrCodeUrl)
         {
-            int labelWidth = 609;
-            int boxLeft = 5;
-            int boxTop = 5;
-            int boxW = 597;
-            int boxH = 394;
-            int borderThk = 8;
+            // ── Label dimensions (3" × 2" @ 203 dpi) ─────────────────────
+            const int labelW = 609;
+            const int labelH = 406;
+            const int padX = 20;   // left/right margin
+            const int padTop = 22;   // top margin (above name)
+            const int padBot = 14;   // bottom margin
 
-            int innerLeft = boxLeft + borderThk;
-            int innerTop = boxTop + borderThk;
-            int innerRight = boxLeft + boxW - borderThk;
-            int innerBottom = boxTop + boxH - borderThk;
-            int innerW = innerRight - innerLeft;   // 581
-            int innerH = innerBottom - innerTop;    // 378
+            int contentX = padX;
+            int contentW = labelW - padX * 2;   // 569
 
-            int padX = 14;   // horizontal padding from inner edge
-            int padY = 10;   // vertical padding from inner edge
+            // ═════════════════════════════════════════════════════════════
+            // NAME SECTION — font 72, left if fits, centered if wraps
+            // ═════════════════════════════════════════════════════════════
+            const int nameFont = 72;
+            const int nameLineGap = 6;
 
-            // ═════════════════════════════════════════════════════════
-            // NAME SECTION — full width, large font, up to 2 lines
-            // ═════════════════════════════════════════════════════════
-            int nameFont;
-            if (name.Length <= 12) nameFont = 70;
-            else if (name.Length <= 18) nameFont = 60;
-            else if (name.Length <= 26) nameFont = 50;
-            else nameFont = 42;
+            int nameCharsPerLine = (int)(contentW / (nameFont * 0.55));
 
-            int nameContentW = innerW - padX * 2;
-            int nameCharsPerLine = (int)(nameContentW / (nameFont * 0.60));
+            var nameLines = SplitIntoLines(name, nameCharsPerLine, 2);
+            int nameLineCount = nameLines.Count;
+            int nameBlockH = nameLineCount * nameFont + (nameLineCount - 1) * nameLineGap;
+            int nameStartY = padTop;
 
-            int nameLines = name.Length <= nameCharsPerLine ? 1 : 2;
-            int nameLineGap = 8;
-            int nameBlockH = nameLines == 1 ? nameFont : nameFont * 2 + nameLineGap;
+            // If name fits on one line → left-aligned, else → centered
+            string nameAlign = nameLineCount == 1 ? "L" : "C";
 
-            string nameLine1 = GetLine(name, nameCharsPerLine, 1);
-            string nameLine2 = nameLines == 2 ? GetLine(name, nameCharsPerLine, 2) : "";
+            // ═════════════════════════════════════════════════════════════
+            // BOTTOM SECTION
+            // ═════════════════════════════════════════════════════════════
+            int gapAfterName = 12;
+            int bottomY = nameStartY + nameBlockH + gapAfterName;
+            int bottomH = labelH - bottomY - padBot;
 
-            // ═════════════════════════════════════════════════════════
-            // BOTTOM SECTION — divides remaining height after name
-            // ═════════════════════════════════════════════════════════
-            int gapNameBottom = 16;   // gap between name block and bottom section
+            int qrSize = Math.Min(bottomH, 180);
+            if (qrSize < 60) qrSize = 60;
 
-            // QR size — fill most of the remaining height
-            int bottomH = innerH - padY - nameBlockH - gapNameBottom - padY;
-            int qrSize = Math.Min(bottomH, 200);   // cap at 200 dots
-            if (qrSize < 80) qrSize = 80;            // minimum readable size
+            int gapCompQr = 14;
+            int qrX = labelW - padX - qrSize;
 
-            // Bottom section starts at:
-            int bottomY = innerTop + padY + nameBlockH + gapNameBottom;
+            // Company gets more left margin than the gap on the QR side
+            int compLeftMargin = 36;   // noticeably more than padX
+            int compX = compLeftMargin;
+            int compW = qrX - compX - gapCompQr;
 
-            // QR — right side, vertically centered in bottom section
-            int qrPanelW = qrSize + padX * 2;
-            int qrX = innerRight - padX - qrSize;
             int qrY = bottomY + (bottomH - qrSize) / 2;
             if (qrY < bottomY) qrY = bottomY;
 
-            // ═════════════════════════════════════════════════════════
-            // COMPANY — left of QR, up to 3 lines
-            // ═════════════════════════════════════════════════════════
-            int compAreaX = innerLeft + padX;
-            int compAreaW = innerW - qrPanelW - padX * 2 - 10;   // 10 = gap between text and QR
+            // ═════════════════════════════════════════════════════════════
+            // COMPANY — font 48, wraps only if needed
+            // ═════════════════════════════════════════════════════════════
+            const int compFont = 48;
+            const int compLineGap = 6;
 
-            int compFont;
-            if (company.Length <= 12) compFont = 40;
-            else if (company.Length <= 20) compFont = 34;
-            else if (company.Length <= 30) compFont = 28;
-            else compFont = 24;
+            int compCharsPerLine = (int)(compW / (compFont * 0.55));
+            int compMaxLines = Math.Max(1, (bottomH + compLineGap) / (compFont + compLineGap));
 
-            int compCharsPerLine = (int)(compAreaW / (compFont * 0.60));
-            int compLineGap = 8;
+            var compLinesList = SplitIntoLines(company, compCharsPerLine, compMaxLines);
+            int compBlockH = compLinesList.Count * compFont + (compLinesList.Count - 1) * compLineGap;
 
-            // Split into up to 3 lines
-            var compLinesList = SplitIntoLines(company, compCharsPerLine, 3);
-            int compLines = compLinesList.Count;
-            int compBlockH = compLines * compFont + (compLines - 1) * compLineGap;
-
-            // Vertically center company text within bottom section (same as QR)
             int compY = bottomY + (bottomH - compBlockH) / 2;
             if (compY < bottomY) compY = bottomY;
 
-            // ═════════════════════════════════════════════════════════
-            // DIVIDER LINE — between name and bottom section
-            // ═════════════════════════════════════════════════════════
-            int dividerY = innerTop + padY + nameBlockH + gapNameBottom / 2;
-
-            // ═════════════════════════════════════════════════════════
-            // NAME Y — vertically centered in name section
-            // ═════════════════════════════════════════════════════════
-            int nameSectionH = nameBlockH + gapNameBottom;
-            int nameY = innerTop + padY + (nameSectionH - nameBlockH) / 2;
-            int nameContentX = innerLeft + padX;
-            int name2Y = nameY + nameFont + nameLineGap;
-
+            // ═════════════════════════════════════════════════════════════
+            // BUILD ZPL
+            // ═════════════════════════════════════════════════════════════
             string qrZpl = BuildQrSection(qrCodeUrl, participantNo, qrX, qrY, qrSize);
 
-            // ═════════════════════════════════════════════════════════
-            // BUILD ZPL
-            // ═════════════════════════════════════════════════════════
             var zpl = new StringBuilder();
-
             zpl.AppendLine("^XA");
-            zpl.AppendLine("^PW609");
-            zpl.AppendLine("^LL406");
+            zpl.AppendLine($"^PW{labelW}");
+            zpl.AppendLine($"^LL{labelH}");
             zpl.AppendLine("^CI28");
 
-            // Outer border
-            zpl.AppendLine($"^FO{boxLeft},{boxTop}^GB{boxW},{boxH},{borderThk}^FS");
-
-            // Divider line (thin, full width inside box)
-            zpl.AppendLine($"^FO{innerLeft},{dividerY}^GB{innerW},2,2^FS");
-
-            // ── NAME (bold = drawn twice +1px offset) ────────────────
-            zpl.AppendLine($"^FO{nameContentX},{nameY}^A0N,{nameFont},{nameFont}^FB{nameContentW},1,0,C^FD{EscapeZpl(nameLine1)}^FS");
-            zpl.AppendLine($"^FO{nameContentX + 1},{nameY}^A0N,{nameFont},{nameFont}^FB{nameContentW},1,0,C^FD{EscapeZpl(nameLine1)}^FS");
-            if (nameLines == 2)
+            // ── FULL NAME ─────────────────────────────────────────────────
+            for (int i = 0; i < nameLines.Count; i++)
             {
-                zpl.AppendLine($"^FO{nameContentX},{name2Y}^A0N,{nameFont},{nameFont}^FB{nameContentW},1,0,C^FD{EscapeZpl(nameLine2)}^FS");
-                zpl.AppendLine($"^FO{nameContentX + 1},{name2Y}^A0N,{nameFont},{nameFont}^FB{nameContentW},1,0,C^FD{EscapeZpl(nameLine2)}^FS");
+                int lineY = nameStartY + i * (nameFont + nameLineGap);
+                zpl.AppendLine($"^FO{contentX},{lineY}^A0N,{nameFont},{nameFont}^FB{contentW},1,0,{nameAlign}^FD{EscapeZpl(nameLines[i])}^FS");
+                zpl.AppendLine($"^FO{contentX + 1},{lineY}^A0N,{nameFont},{nameFont}^FB{contentW},1,0,{nameAlign}^FD{EscapeZpl(nameLines[i])}^FS");
             }
 
-            // ── COMPANY (left panel, up to 3 lines) ──────────────────
+            // ── COMPANY NAME ──────────────────────────────────────────────
             if (!string.IsNullOrEmpty(company))
             {
                 for (int i = 0; i < compLinesList.Count; i++)
                 {
                     int lineY = compY + i * (compFont + compLineGap);
-                    zpl.AppendLine($"^FO{compAreaX},{lineY}^A0N,{compFont},{compFont}^FB{compAreaW},1,0,L^FD{EscapeZpl(compLinesList[i])}^FS");
+                    zpl.AppendLine($"^FO{compX},{lineY}^A0N,{compFont},{compFont}^FB{compW},1,0,L^FD{EscapeZpl(compLinesList[i])}^FS");
                 }
             }
 
-            // ── QR (right panel) ─────────────────────────────────────
+            // ── QR CODE ───────────────────────────────────────────────────
             zpl.AppendLine(qrZpl);
 
             zpl.AppendLine("^PQ1,0,1,Y");

@@ -50,6 +50,10 @@
         "net8.0-windows7.0": {
           "targetAlias": "net8.0-windows",
           "dependencies": {
+            "EPPlus": {
+              "target": "Package",
+              "version": "[8.5.0, )"
+            },
             "MySql.Data": {
               "target": "Package",
               "version": "[9.6.0, )"
